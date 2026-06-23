@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
 import Image from "next/image";
+import Link from "next/link";
 
 interface BookingData {
   uid: string;
@@ -15,24 +16,32 @@ interface BookingData {
   bookingFieldsResponses: Record<string, string>;
 }
 
-export default function TerminDetail() {
+function TerminDetailContent() {
   const { uid } = useParams<{ uid: string }>();
+  const searchParams = useSearchParams();
+  const token = searchParams.get("token");
+
   const [booking, setBooking] = useState<BookingData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!uid) return;
-    fetch(`/api/bookings/${uid}`)
-      .then((r) => r.json())
-      .then((data) => {
+    if (!uid || !token) {
+      setError(token === null ? "Fehlender Zugriffstoken" : "Keine Buchungs-ID");
+      setLoading(false);
+      return;
+    }
+    fetch(`/api/bookings/${uid}?token=${encodeURIComponent(token)}`)
+      .then(async (r) => {
+        const data = await r.json();
+        if (r.status === 401) throw new Error("Ungültiger oder abgelaufener Zugriff");
         const b = data?.data;
         if (!b) throw new Error("Buchung nicht gefunden");
         setBooking(b);
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
-  }, [uid]);
+  }, [uid, token]);
 
   if (loading) {
     return (
@@ -42,15 +51,25 @@ export default function TerminDetail() {
     );
   }
 
-  if (error || !booking) {
+  if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-600 font-medium">{error || "Nicht gefunden"}</p>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+        <div className="text-center max-w-md">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </div>
+          <p className="text-red-600 font-medium mb-2">{error}</p>
+          <p className="text-sm text-gray-500">
+            Der Link ist ungültig oder die Buchung existiert nicht.
+          </p>
         </div>
       </div>
     );
   }
+
+  if (!booking) return null;
 
   const meta = booking.metadata || {};
   const bfr = booking.bookingFieldsResponses || {};
@@ -133,4 +152,8 @@ export default function TerminDetail() {
       </div>
     </div>
   );
+}
+
+export default function TerminDetail() {
+  return <TerminDetailContent />;
 }

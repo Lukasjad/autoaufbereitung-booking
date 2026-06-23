@@ -7,7 +7,7 @@ import Link from "next/link";
 function BestaetigungContent() {
   const searchParams = useSearchParams();
   const uid = searchParams.get("uid");
-  const terminLink = searchParams.get("link");
+  const link = searchParams.get("link");
 
   return (
     <div className="max-w-md w-full bg-white rounded-2xl shadow-lg border border-gray-100 p-8 text-center">
@@ -41,9 +41,9 @@ function BestaetigungContent() {
         </p>
       )}
 
-      {terminLink && (
+      {link && (
         <a
-          href={terminLink}
+          href={link}
           target="_blank"
           rel="noopener noreferrer"
           className="block mb-4 px-4 py-3 bg-gray-100 text-gray-800 font-medium rounded-lg hover:bg-gray-200 transition-colors text-sm truncate"

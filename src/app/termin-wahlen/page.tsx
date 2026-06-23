@@ -54,7 +54,7 @@ export default function TerminWahlen() {
 
       sessionStorage.removeItem("bookingForm");
       const uid = data?.data?.uid || "";
-      const link = data?.terminLink || "";
+      const link = data?.terminLink || data?.shortLink || "";
       router.push(`/bestaetigung?uid=${uid}&link=${encodeURIComponent(link)}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Unbekannter Fehler");

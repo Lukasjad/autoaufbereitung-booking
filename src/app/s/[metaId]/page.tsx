@@ -14,7 +14,8 @@ export default async function ShortLinkPage({
   );
 
   if (booking?.uid) {
-    redirect(`/termin/${booking.uid}`);
+    const token = booking.metadata?.access_token || "";
+    redirect(`/termin/${booking.uid}?token=${token}`);
   }
 
   return (
