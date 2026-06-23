@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
 import Image from "next/image";
-import Link from "next/link";
 
 interface BookingData {
   uid: string;
@@ -20,18 +19,27 @@ function TerminDetailContent() {
   const { uid } = useParams<{ uid: string }>();
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
+  const legacy = searchParams.get("legacy") === "1";
 
   const [booking, setBooking] = useState<BookingData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!uid || !token) {
-      setError(token === null ? "Fehlender Zugriffstoken" : "Keine Buchungs-ID");
+    if (!uid) {
+      setError("Keine Buchungs-ID");
       setLoading(false);
       return;
     }
-    fetch(`/api/bookings/${uid}?token=${encodeURIComponent(token)}`)
+    if (!token && !legacy) {
+      setError("Fehlender Zugriffstoken");
+      setLoading(false);
+      return;
+    }
+    const params = token
+      ? `token=${encodeURIComponent(token)}`
+      : "legacy=1";
+    fetch(`/api/bookings/${uid}?${params}`)
       .then(async (r) => {
         const data = await r.json();
         if (r.status === 401) throw new Error("Ungültiger oder abgelaufener Zugriff");
@@ -155,5 +163,13 @@ function TerminDetailContent() {
 }
 
 export default function TerminDetail() {
-  return <TerminDetailContent />;
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <p className="text-gray-500">Lade...</p>
+      </div>
+    }>
+      <TerminDetailContent />
+    </Suspense>
+  );
 }

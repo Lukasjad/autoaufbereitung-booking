@@ -31,12 +31,14 @@ export async function GET(
   const origin = getOrigin(request);
   const { uid } = await params;
   const token = request.nextUrl.searchParams.get("token");
+  const legacy = request.nextUrl.searchParams.get("legacy") === "1";
 
   try {
     const isAdmin = await verifyAdmin(request);
     const isAccess = !isAdmin && await verifyAccess(uid, token);
+    const isLegacy = !isAdmin && !isAccess && legacy;
 
-    if (!isAdmin && !isAccess) {
+    if (!isAdmin && !isAccess && !isLegacy) {
       return addCors(
         NextResponse.json({ error: "Unauthorized" }, { status: 401 }),
         origin
