@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { createBooking } from "@/lib/cal";
 import { generateLinkId } from "@/lib/id";
 
+function getFirstImage(bilderStr: string): string {
+  return bilderStr.split(",").map((u) => u.trim()).filter(Boolean)[0] || "";
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -46,7 +50,7 @@ export async function POST(request: NextRequest) {
         fahrzeugmarke: metadata?.fahrzeugmarke || "",
         fahrzeugmodell: metadata?.fahrzeugmodell || "",
         kennzeichen: metadata?.kennzeichen || "",
-        schadensbilder: shortLink,
+        schadensbilder: getFirstImage(metadata?.bilder || ""),
       },
       metadata: {
         baujahr: metadata?.baujahr || "",
