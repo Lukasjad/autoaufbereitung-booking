@@ -65,6 +65,10 @@ export async function POST(request: NextRequest) {
     const fahrzeugmodell = sanitize(metadata?.fahrzeugmodell || "");
     const kennzeichen = sanitize(metadata?.kennzeichen || "");
     const baujahr = sanitize(metadata?.baujahr || "");
+    const service = sanitize(metadata?.service || "");
+    const treibstoff = sanitize(metadata?.treibstoff || "");
+    const kilometerstand = sanitize(metadata?.kilometerstand || "");
+    const schadensbeschreibung = sanitize(metadata?.schadensbeschreibung || "");
     const notizen = sanitize(metadata?.notizen || "");
     const bilder = (metadata?.bilder || "")
       .split(",")
@@ -102,7 +106,11 @@ export async function POST(request: NextRequest) {
         schadensbilder: getFirstImage(bilder),
       },
       metadata: {
+        service,
         baujahr,
+        treibstoff,
+        kilometerstand,
+        schadensbeschreibung,
         bilder,
         notizen,
         buchung_link_id: buchungLinkId,

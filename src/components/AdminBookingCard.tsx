@@ -66,6 +66,14 @@ export default function AdminBookingCard({ booking }: BookingCardProps) {
         </p>
       </div>
 
+      {meta.service && (
+        <div className="text-sm">
+          <span className="inline-block px-3 py-1 bg-blue-100 text-blue-800 rounded-full font-medium">
+            {meta.service}
+          </span>
+        </div>
+      )}
+
       {(meta.fahrzeugmarke || meta.fahrzeugmodell) && (
         <div className="text-sm text-gray-700 bg-gray-50 rounded-lg p-3">
           <p className="font-medium mb-1">Fahrzeug</p>
@@ -74,6 +82,15 @@ export default function AdminBookingCard({ booking }: BookingCardProps) {
           </p>
           {meta.kennzeichen && <p>Kennzeichen: {meta.kennzeichen}</p>}
           {meta.baujahr && <p>Baujahr: {meta.baujahr}</p>}
+          {meta.treibstoff && <p>Treibstoff: {meta.treibstoff}</p>}
+          {meta.kilometerstand && <p>Kilometerstand: {meta.kilometerstand}</p>}
+        </div>
+      )}
+
+      {meta.schadensbeschreibung && (
+        <div className="text-sm text-gray-700">
+          <p className="font-medium">Schadensbeschreibung</p>
+          <p className="text-gray-600">{meta.schadensbeschreibung}</p>
         </div>
       )}
 

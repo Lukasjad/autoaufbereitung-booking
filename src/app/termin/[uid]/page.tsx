@@ -117,10 +117,21 @@ function TerminDetailContent() {
             </div>
           </div>
 
+          {meta.service && (
+            <div className="mb-4">
+              <span className="inline-block px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+                {meta.service}
+              </span>
+            </div>
+          )}
+
           <div className="bg-gray-50 rounded-lg p-4 text-sm mb-6 space-y-1">
             <p><span className="font-medium">Fahrzeug:</span> {bfr.fahrzeugmarke} {bfr.fahrzeugmodell}</p>
             <p><span className="font-medium">Kennzeichen:</span> {bfr.kennzeichen || "—"}</p>
             <p><span className="font-medium">Baujahr:</span> {meta.baujahr || "—"}</p>
+            {meta.treibstoff && <p><span className="font-medium">Treibstoff:</span> {meta.treibstoff}</p>}
+            {meta.kilometerstand && <p><span className="font-medium">Kilometerstand:</span> {meta.kilometerstand}</p>}
+            {meta.schadensbeschreibung && <p><span className="font-medium">Schadensbeschreibung:</span> {meta.schadensbeschreibung}</p>}
             {meta.notizen && <p><span className="font-medium">Notizen:</span> {meta.notizen}</p>}
           </div>
 

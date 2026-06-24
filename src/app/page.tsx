@@ -3,10 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import ImageUpload from "@/components/ImageUpload";
+import { CAR_BRANDS, SERVICES, FUEL_TYPES, MILEAGE_OPTIONS } from "@/lib/types";
 
 export default function Home() {
   const router = useRouter();
-  const [step, setStep] = useState(1);
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -16,16 +16,19 @@ export default function Home() {
     kennzeichen: "",
     baujahr: "",
     notizen: "",
+    service: "",
+    treibstoff: "",
+    kilometerstand: "",
+    schadensbeschreibung: "",
   });
   const [images, setImages] = useState<string[]>([]);
-  const [saving, setSaving] = useState(false);
 
   function update(field: string, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
   }
 
   function handleNext() {
-    if (!form.name || !form.email || !form.marke) return;
+    if (!form.name || !form.email || !form.marke || !form.service) return;
     const bookingData = {
       name: form.name,
       email: form.email,
@@ -38,6 +41,10 @@ export default function Home() {
       },
       imageUrls: images,
       notizen: form.notizen,
+      service: form.service,
+      treibstoff: form.treibstoff,
+      kilometerstand: form.kilometerstand,
+      schadensbeschreibung: form.schadensbeschreibung,
     };
     sessionStorage.setItem("bookingForm", JSON.stringify(bookingData));
     router.push("/termin-wahlen");
@@ -46,7 +53,8 @@ export default function Home() {
   const isValid =
     form.name.trim() &&
     form.email.trim() &&
-    form.marke.trim();
+    form.marke.trim() &&
+    form.service;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 py-12 px-4">
@@ -56,177 +64,223 @@ export default function Home() {
             Autoaufbereitung buchen
           </h1>
           <p className="text-gray-600 mt-2">
-            Vereinbaren Sie einen Termin für Ihre Fahrzeugaufbereitung
+            Wählen Sie Ihren Service und vereinbaren Sie einen Termin
           </p>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
-          <div className="flex items-center gap-2 mb-8">
-            <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                step === 1
-                  ? "bg-blue-600 text-white"
-                  : "bg-green-100 text-green-700"
-              }`}
-            >
-              1
-            </div>
-            <span
-              className={`text-sm font-medium ${
-                step === 1 ? "text-blue-600" : "text-green-700"
-              }`}
-            >
-              Fahrzeugdaten & Bilder
-            </span>
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 space-y-8">
+          {/* Step indicator */}
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold bg-blue-600 text-white">1</div>
+            <span className="text-sm font-medium text-blue-600">Angaben</span>
             <div className="flex-1 h-px bg-gray-200 mx-3" />
-            <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                step === 2
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-200 text-gray-400"
-              }`}
-            >
-              2
-            </div>
-            <span
-              className={`text-sm font-medium ${
-                step === 2 ? "text-blue-600" : "text-gray-400"
-              }`}
-            >
-              Termin wählen
-            </span>
+            <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold bg-gray-200 text-gray-400">2</div>
+            <span className="text-sm font-medium text-gray-400">Termin wählen</span>
           </div>
 
-          <div className="space-y-5">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Name *
-                </label>
-                <input
-                  type="text"
-                  value={form.name}
-                  onChange={(e) => update("name", e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
-                  placeholder="Max Mustermann"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  E-Mail *
-                </label>
-                <input
-                  type="email"
-                  value={form.email}
-                  onChange={(e) => update("email", e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
-                  placeholder="max@example.com"
-                />
-              </div>
+          {/* Service Selection */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-800 mb-3">
+              Serviceauswahl *
+            </label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {SERVICES.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => update("service", s)}
+                  className={`px-4 py-3 rounded-xl border-2 text-left transition-all ${
+                    form.service === s
+                      ? "border-blue-600 bg-blue-50 text-blue-800 font-medium"
+                      : "border-gray-200 bg-white text-gray-700 hover:border-gray-300"
+                  }`}
+                >
+                  {s}
+                </button>
+              ))}
             </div>
+          </div>
 
+          <hr className="border-gray-200" />
+
+          {/* Vehicle Brand */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-800 mb-2">
+              Automobilhersteller *
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                value={form.marke}
+                onChange={(e) => update("marke", e.target.value)}
+                list="car-brands"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                placeholder="Hersteller auswählen..."
+              />
+              <datalist id="car-brands">
+                {CAR_BRANDS.map((b) => (
+                  <option key={b} value={b} />
+                ))}
+              </datalist>
+            </div>
+          </div>
+
+          {/* Model + License plate */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Telefon
+                Genaue Modellbezeichnung
               </label>
               <input
-                type="tel"
-                value={form.telefon}
-                onChange={(e) => update("telefon", e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
-                placeholder="+49 123 456789"
+                type="text"
+                value={form.modell}
+                onChange={(e) => update("modell", e.target.value)}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                placeholder="z.B. C220, GTI, X5"
               />
             </div>
-
-            <hr className="border-gray-200" />
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Fahrzeugmarke *
-                </label>
-                <input
-                  type="text"
-                  value={form.marke}
-                  onChange={(e) => update("marke", e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
-                  placeholder="BMW"
-                  list="marken"
-                />
-                <datalist id="marken">
-                  <option value="BMW" />
-                  <option value="Mercedes-Benz" />
-                  <option value="Audi" />
-                  <option value="Volkswagen" />
-                  <option value="Porsche" />
-                  <option value="Tesla" />
-                </datalist>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Modell
-                </label>
-                <input
-                  type="text"
-                  value={form.modell}
-                  onChange={(e) => update("modell", e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
-                  placeholder="X5"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Kennzeichen
-                </label>
-                <input
-                  type="text"
-                  value={form.kennzeichen}
-                  onChange={(e) => update("kennzeichen", e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
-                  placeholder="AB-CD 123"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Baujahr
-                </label>
-                <input
-                  type="text"
-                  value={form.baujahr}
-                  onChange={(e) => update("baujahr", e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
-                  placeholder="2022"
-                />
-              </div>
-            </div>
-
-            <ImageUpload images={images} onImagesChange={setImages} />
-
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Notizen / Besonderheiten
+                Kennzeichen
               </label>
-              <textarea
-                value={form.notizen}
-                onChange={(e) => update("notizen", e.target.value)}
-                rows={3}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors resize-none"
-                placeholder="z.B. Innenraumreinigung + Politur, Kratzer an der Tür..."
+              <input
+                type="text"
+                value={form.kennzeichen}
+                onChange={(e) => update("kennzeichen", e.target.value)}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                placeholder="AB-CD 123"
               />
             </div>
-
-            <button
-              type="button"
-              disabled={!isValid || saving}
-              onClick={handleNext}
-              className="w-full py-3 bg-blue-600 text-white font-semibold rounded-lg disabled:opacity-40 disabled:cursor-not-allowed hover:bg-blue-700 transition-colors"
-            >
-              Weiter zum Termin auswählen
-            </button>
           </div>
+
+          {/* Fuel + Mileage + Build year */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Treibstoff
+              </label>
+              <select
+                value={form.treibstoff}
+                onChange={(e) => update("treibstoff", e.target.value)}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
+              >
+                <option value="">—</option>
+                {FUEL_TYPES.map((f) => (
+                  <option key={f} value={f}>{f}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Kilometerstand
+              </label>
+              <select
+                value={form.kilometerstand}
+                onChange={(e) => update("kilometerstand", e.target.value)}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
+              >
+                <option value="">—</option>
+                {MILEAGE_OPTIONS.map((m) => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Baujahr
+              </label>
+              <input
+                type="text"
+                value={form.baujahr}
+                onChange={(e) => update("baujahr", e.target.value)}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                placeholder="2022"
+              />
+            </div>
+          </div>
+
+          <hr className="border-gray-200" />
+
+          {/* Damage description */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Schadensbeschreibung
+            </label>
+            <textarea
+              value={form.schadensbeschreibung}
+              onChange={(e) => update("schadensbeschreibung", e.target.value)}
+              rows={3}
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none"
+              placeholder="Beschreiben Sie den Schaden oder die gewünschte Leistung..."
+            />
+          </div>
+
+          <ImageUpload images={images} onImagesChange={setImages} />
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Notizen / Besonderheiten
+            </label>
+            <textarea
+              value={form.notizen}
+              onChange={(e) => update("notizen", e.target.value)}
+              rows={2}
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none"
+              placeholder="Weitere Anmerkungen..."
+            />
+          </div>
+
+          <hr className="border-gray-200" />
+
+          {/* Personal data */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Vor- & Nachname *
+              </label>
+              <input
+                type="text"
+                value={form.name}
+                onChange={(e) => update("name", e.target.value)}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                placeholder="Max Mustermann"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                E-Mail *
+              </label>
+              <input
+                type="email"
+                value={form.email}
+                onChange={(e) => update("email", e.target.value)}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                placeholder="max@example.com"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Telefon / Handynummer
+            </label>
+            <input
+              type="tel"
+              value={form.telefon}
+              onChange={(e) => update("telefon", e.target.value)}
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              placeholder="+49 123 456789"
+            />
+          </div>
+
+          <button
+            type="button"
+            disabled={!isValid}
+            onClick={handleNext}
+            className="w-full py-3 bg-blue-600 text-white font-semibold rounded-lg disabled:opacity-40 disabled:cursor-not-allowed hover:bg-blue-700 transition-colors"
+          >
+            Weiter zum Termin auswählen
+          </button>
         </div>
       </div>
     </div>

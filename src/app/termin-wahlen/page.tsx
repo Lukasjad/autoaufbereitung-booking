@@ -39,10 +39,14 @@ export default function TerminWahlen() {
             telefon: formData.telefon,
           },
           metadata: {
+            service: formData.service,
             fahrzeugmarke: formData.vehicle.marke,
             fahrzeugmodell: formData.vehicle.modell,
             kennzeichen: formData.vehicle.kennzeichen,
             baujahr: formData.vehicle.baujahr,
+            treibstoff: formData.treibstoff,
+            kilometerstand: formData.kilometerstand,
+            schadensbeschreibung: formData.schadensbeschreibung,
             bilder: formData.imageUrls.join(","),
             notizen: formData.notizen,
           },
@@ -93,9 +97,15 @@ export default function TerminWahlen() {
 
           <div className="mb-6 p-4 bg-gray-50 rounded-lg text-sm text-gray-700 space-y-1">
             <p>
+              <span className="font-medium">Service:</span> {formData.service}
+            </p>
+            <p>
               <span className="font-medium">Fahrzeug:</span> {formData.vehicle.marke}{" "}
               {formData.vehicle.modell} ({formData.vehicle.kennzeichen})
             </p>
+            {formData.treibstoff && <p><span className="font-medium">Treibstoff:</span> {formData.treibstoff}</p>}
+            {formData.kilometerstand && <p><span className="font-medium">Kilometerstand:</span> {formData.kilometerstand}</p>}
+            {formData.vehicle.baujahr && <p><span className="font-medium">Baujahr:</span> {formData.vehicle.baujahr}</p>}
             <p>
               <span className="font-medium">Kunde:</span> {formData.name} (
               {formData.email})
