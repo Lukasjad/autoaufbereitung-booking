@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { getAllBookings } from "@/lib/cal";
 import { addCors, corsResponse, getOrigin } from "@/lib/cors";
 import { rateLimitIP } from "@/lib/rate-limit";
+import { env } from "@/lib/env";
 
 export async function OPTIONS(request: NextRequest) {
   return corsResponse(getOrigin(request));
@@ -19,7 +20,7 @@ export async function GET(request: NextRequest) {
   }
 
   const auth = request.headers.get("authorization");
-  const hashRaw = process.env.ADMIN_PASSWORD_HASH;
+  const hashRaw = env("ADMIN_PASSWORD_HASH");
   const hash = hashRaw ? Buffer.from(hashRaw, "base64").toString("utf-8") : "";
 
   if (!auth || !hash) {

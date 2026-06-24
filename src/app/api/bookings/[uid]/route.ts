@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { getBookingByUid } from "@/lib/cal";
 import { addCors, corsResponse, getOrigin } from "@/lib/cors";
+import { env } from "@/lib/env";
 
 export async function OPTIONS(request: NextRequest) {
   return corsResponse(getOrigin(request));
@@ -17,7 +18,7 @@ async function verifyAccess(uid: string, token: string | null): Promise<boolean>
 async function verifyAdmin(request: NextRequest): Promise<boolean> {
   const auth = request.headers.get("authorization");
   if (!auth) return false;
-  const hashRaw = process.env.ADMIN_PASSWORD_HASH;
+  const hashRaw = env("ADMIN_PASSWORD_HASH");
   if (!hashRaw) return false;
   const hash = Buffer.from(hashRaw, "base64").toString("utf-8");
   const pw = auth.replace(/^Bearer\s+/i, "");

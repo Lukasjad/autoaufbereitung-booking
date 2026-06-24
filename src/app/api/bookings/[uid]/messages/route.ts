@@ -5,6 +5,7 @@ import { getBookingByUid } from "@/lib/cal";
 import { sanitize } from "@/lib/validate";
 import { addCors, corsResponse, getOrigin } from "@/lib/cors";
 import { rateLimitIP } from "@/lib/rate-limit";
+import { env } from "@/lib/env";
 
 async function verifyCustomer(uid: string, token: string | null): Promise<boolean> {
   if (!token) return false;
@@ -19,7 +20,7 @@ async function verifyCustomer(uid: string, token: string | null): Promise<boolea
 async function verifyAdmin(request: NextRequest): Promise<boolean> {
   const auth = request.headers.get("authorization");
   if (!auth) return false;
-  const hashRaw = process.env.ADMIN_PASSWORD_HASH;
+  const hashRaw = env("ADMIN_PASSWORD_HASH");
   if (!hashRaw) return false;
   const hash = Buffer.from(hashRaw, "base64").toString("utf-8");
   const pw = auth.replace(/^Bearer\s+/i, "");

@@ -1,10 +1,11 @@
 import { Resend } from "resend";
+import { env } from "@/lib/env";
 
 let resend: Resend | null = null;
 
 function getResend(): Resend {
   if (!resend) {
-    const key = process.env.RESEND_API_KEY;
+    const key = env("RESEND_API_KEY");
     if (!key) throw new Error("RESEND_API_KEY must be set");
     resend = new Resend(key);
   }
