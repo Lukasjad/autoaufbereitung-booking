@@ -4,6 +4,7 @@ import { generateLinkId } from "@/lib/id";
 import { sanitize, validEmail, validPhone } from "@/lib/validate";
 import { addCors, corsResponse, getOrigin } from "@/lib/cors";
 import { rateLimitIP } from "@/lib/rate-limit";
+import { sendBookingConfirmation } from "@/lib/email";
 
 function getFirstImage(bilderStr: string): string {
   return bilderStr.split(",").map((u) => u.trim()).filter(Boolean)[0] || "";
@@ -120,6 +121,17 @@ export async function POST(request: NextRequest) {
 
     const bookingUid = result?.data?.uid;
     const terminLink = bookingUid ? `${proto}://${host}/termin/${bookingUid}?token=${accessToken}` : "";
+
+    if (bookingUid) {
+      sendBookingConfirmation({
+        to: email,
+        name,
+        service,
+        start,
+        terminLink,
+        shortLink,
+      }).catch((e) => console.error("Email send failed:", e));
+    }
 
     return addCors(
       NextResponse.json({ ...result, terminLink, shortLink, accessToken }),
