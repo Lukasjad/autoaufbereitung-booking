@@ -28,8 +28,12 @@ function tryDecrypt(encVal: string): string | null {
 }
 
 export function env(name: string): string {
+  const plain = process.env[name];
+  if (plain) return plain;
   const encName = `ENC_${name}`;
   const encVal = process.env[encName];
-  if (encVal) return tryDecrypt(encVal) ?? "";
-  return process.env[name] ?? "";
+  if (encVal && process.env.ENV_MASTER_KEY) {
+    return tryDecrypt(encVal) ?? "";
+  }
+  return "";
 }
