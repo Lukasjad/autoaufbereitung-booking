@@ -20,14 +20,13 @@ export async function GET(request: NextRequest) {
   const date = request.nextUrl.searchParams.get("date");
   const timeZone = request.nextUrl.searchParams.get("timeZone") || "Europe/Berlin";
 
-  if (!date) {
-    return addCors(
-      NextResponse.json({ error: "date parameter required" }, { status: 400 }),
-      origin
-    );
-  }
-
   try {
+    if (!date) {
+      return addCors(
+        NextResponse.json({ error: "date parameter required" }, { status: 400 }),
+        origin
+      );
+    }
     const data = await getAvailableSlots(date, timeZone);
     return addCors(NextResponse.json(data), origin);
   } catch (error) {

@@ -11,6 +11,9 @@ function getHeaders(version: string) {
 }
 
 export async function getAvailableSlots(date: string, timeZone: string) {
+  if (!env("CAL_API_KEY") || !env("CAL_EVENT_TYPE_ID")) {
+    return { slots: {} };
+  }
   const url = `${CAL_API}/slots?eventTypeId=${env("CAL_EVENT_TYPE_ID")}&start=${date}&end=${date}&timeZone=${encodeURIComponent(timeZone)}`;
   const res = await fetch(url, { headers: getHeaders("2024-09-04") });
   if (!res.ok) {
@@ -27,6 +30,9 @@ export async function createBooking(data: {
   metadata?: Record<string, string>;
   bookingFieldsResponses?: Record<string, string>;
 }) {
+  if (!env("CAL_API_KEY") || !env("CAL_EVENT_TYPE_ID")) {
+    throw new Error("Cal.com API nicht konfiguriert");
+  }
   const res = await fetch(`${CAL_API}/bookings`, {
     method: "POST",
     headers: getHeaders("2026-02-25"),
