@@ -2,6 +2,13 @@ import { env } from "@/lib/env";
 
 const CAL_API = "https://api.cal.com/v2";
 
+function normalizeBooking(booking: any): any {
+  if (!booking.metadata && booking.attendees?.[0]?.metadata) {
+    booking.metadata = booking.attendees[0].metadata;
+  }
+  return booking;
+}
+
 function getHeaders(version: string) {
   return {
     Authorization: `Bearer ${env("CAL_API_KEY")}`,
@@ -60,7 +67,9 @@ export async function getBookingByUid(uid: string) {
     const text = await res.text();
     throw new Error(`Cal.com booking error ${res.status}: ${text}`);
   }
-  return res.json();
+  const json = await res.json();
+  if (json?.data) normalizeBooking(json.data);
+  return json;
 }
 
 export async function getAllBookings() {
@@ -72,5 +81,9 @@ export async function getAllBookings() {
     const text = await res.text();
     throw new Error(`Cal.com bookings error ${res.status}: ${text}`);
   }
-  return res.json();
+  const json = await res.json();
+  if (Array.isArray(json?.data)) {
+    json.data.forEach(normalizeBooking);
+  }
+  return json;
 }
