@@ -5,7 +5,9 @@ import { generateReactHelpers } from "@uploadthing/react";
 import type { OurFileRouter } from "@/app/api/uploadthing/core";
 import Image from "next/image";
 
-const { uploadFiles } = generateReactHelpers<OurFileRouter>();
+const { uploadFiles } = generateReactHelpers<OurFileRouter>({
+  url: "/api/uploadthing",
+});
 
 interface ImageUploadProps {
   images: string[];

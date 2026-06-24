@@ -8,7 +8,9 @@ import Image from "next/image";
 import { generateReactHelpers } from "@uploadthing/react";
 import type { OurFileRouter } from "@/app/api/uploadthing/core";
 
-const { uploadFiles } = generateReactHelpers<OurFileRouter>();
+const { uploadFiles } = generateReactHelpers<OurFileRouter>({
+  url: "/api/uploadthing",
+});
 
 interface Message {
   id: number;
