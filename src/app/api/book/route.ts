@@ -108,6 +108,9 @@ export async function POST(request: NextRequest) {
       },
       metadata: {
         service,
+        fahrzeugmarke,
+        fahrzeugmodell,
+        kennzeichen,
         baujahr,
         treibstoff,
         kilometerstand,
