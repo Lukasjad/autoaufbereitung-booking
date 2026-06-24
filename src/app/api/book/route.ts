@@ -123,14 +123,18 @@ export async function POST(request: NextRequest) {
     const terminLink = bookingUid ? `${proto}://${host}/termin/${bookingUid}?token=${accessToken}` : "";
 
     if (bookingUid) {
-      sendBookingConfirmation({
-        to: email,
-        name,
-        service,
-        start,
-        terminLink,
-        shortLink,
-      }).catch((e) => console.error("Email send failed:", e));
+      try {
+        await sendBookingConfirmation({
+          to: email,
+          name,
+          service,
+          start,
+          terminLink,
+          shortLink,
+        });
+      } catch {
+        console.log("Email not sent (Resend not configured). Booking link:", terminLink);
+      }
     }
 
     return addCors(

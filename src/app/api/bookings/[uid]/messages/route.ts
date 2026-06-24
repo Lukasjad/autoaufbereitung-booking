@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { getSupabase } from "@/lib/supabase";
 import { getBookingByUid } from "@/lib/cal";
 import { sanitize } from "@/lib/validate";
 import { addCors, corsResponse, getOrigin } from "@/lib/cors";
@@ -25,6 +24,19 @@ async function verifyAdmin(request: NextRequest): Promise<boolean> {
   const hash = Buffer.from(hashRaw, "base64").toString("utf-8");
   const pw = auth.replace(/^Bearer\s+/i, "");
   return bcrypt.compare(pw, hash);
+}
+
+function isSupabaseConfigured(): boolean {
+  return !!(env("SUPABASE_URL") && env("SUPABASE_SERVICE_KEY"));
+}
+
+function getSupabaseOrNull() {
+  try {
+    const { getSupabase } = require("@/lib/supabase");
+    return getSupabase();
+  } catch {
+    return null;
+  }
 }
 
 export async function OPTIONS(request: NextRequest) {
@@ -56,7 +68,16 @@ export async function GET(
     );
   }
 
-  const { data, error } = await getSupabase()
+  if (!isSupabaseConfigured()) {
+    return addCors(NextResponse.json({ data: [] }), origin);
+  }
+
+  const supabase = getSupabaseOrNull();
+  if (!supabase) {
+    return addCors(NextResponse.json({ data: [] }), origin);
+  }
+
+  const { data, error } = await supabase
     .from("messages")
     .select("*")
     .eq("booking_uid", uid)
@@ -97,6 +118,21 @@ export async function POST(
     );
   }
 
+  if (!isSupabaseConfigured()) {
+    return addCors(
+      NextResponse.json({ error: "Chat nicht verfügbar (Supabase nicht konfiguriert)" }, { status: 503 }),
+      origin
+    );
+  }
+
+  const supabase = getSupabaseOrNull();
+  if (!supabase) {
+    return addCors(
+      NextResponse.json({ error: "Chat nicht verfügbar" }, { status: 503 }),
+      origin
+    );
+  }
+
   const body = await request.json();
   const textRaw = body.text || "";
   const imageUrlsRaw = body.imageUrls || [];
@@ -115,7 +151,7 @@ export async function POST(
 
   const sender = isAdmin ? "admin" : "customer";
 
-  const { data, error } = await getSupabase()
+  const { data, error } = await supabase
     .from("messages")
     .insert({
       booking_uid: uid,
