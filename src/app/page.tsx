@@ -109,19 +109,24 @@ export default function Home() {
               Automobilhersteller *
             </label>
             <div className="relative">
-              <input
-                type="text"
+              <select
                 value={form.marke}
                 onChange={(e) => update("marke", e.target.value)}
-                list="car-brands"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                placeholder="Hersteller auswählen..."
-              />
-              <datalist id="car-brands">
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white appearance-none cursor-pointer"
+              >
+                <option value="">Hersteller auswählen...</option>
                 {CAR_BRANDS.map((b) => (
-                  <option key={b} value={b} />
+                  <option key={b} value={b}>{b}</option>
                 ))}
-              </datalist>
+              </select>
+              <svg
+                className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
             </div>
           </div>
 
