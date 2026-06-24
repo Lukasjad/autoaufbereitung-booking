@@ -90,10 +90,6 @@ function TerminDetailContent() {
     return () => clearInterval(interval);
   }, [booking, token, uid]);
 
-  useEffect(() => {
-    chatEnd.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
   async function sendMessage(text?: string) {
     const msg = text ?? inputText.trim();
     if (!msg) return;

@@ -76,10 +76,6 @@ export default function AdminBookingDetail() {
     return () => clearInterval(interval);
   }, [uid, password, loggedIn]);
 
-  useEffect(() => {
-    chatEnd.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     const res = await fetch("/api/bookings", {

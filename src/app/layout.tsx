@@ -27,9 +27,13 @@ export default function RootLayout({
     <html lang="de" className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
       <body className="min-h-screen flex flex-col font-sans">
         <header className="border-b border-gray-200 bg-white">
-          <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
-            <Link href="/" className="font-bold text-gray-900 hover:text-blue-600 transition-colors">
-              Autoaufbereitung
+          <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+            <Link href="/" className="flex items-center">
+              <img
+                src="/logo.png"
+                alt="Elbe Smart Repair"
+                className="h-10 w-auto"
+              />
             </Link>
             <nav className="flex items-center gap-4 text-sm">
               <Link href="/" className="text-gray-600 hover:text-gray-900 transition-colors">
