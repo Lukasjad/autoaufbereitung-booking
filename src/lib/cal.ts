@@ -3,8 +3,14 @@ import { env } from "@/lib/env";
 const CAL_API = "https://api.cal.com/v2";
 
 function normalizeBooking(booking: any): any {
-  if (!booking.metadata && booking.attendees?.[0]?.metadata) {
-    booking.metadata = booking.attendees[0].metadata;
+  const att = booking.attendees?.[0];
+  if (att) {
+    if (!booking.metadata && att.metadata) {
+      booking.metadata = att.metadata;
+    }
+    if (!booking.bookingFieldsResponses && att.bookingFieldsResponses) {
+      booking.bookingFieldsResponses = att.bookingFieldsResponses;
+    }
   }
   return booking;
 }
