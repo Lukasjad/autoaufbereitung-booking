@@ -14,17 +14,19 @@ export default async function ShortLinkPage({
   );
 
   if (booking?.uid) {
+    // Versuche access_token aus den Metadaten zu holen
+    let accessToken = "";
     try {
       const full = await getBookingByUid(booking.uid);
       const meta = full?.data?.metadata || {};
-      const accessToken = meta.access_token || meta.accessToken || "";
-      if (accessToken) {
-        redirect(`/termin/${booking.uid}?token=${encodeURIComponent(accessToken)}`);
-      }
+      accessToken = meta.access_token || meta.accessToken || "";
     } catch {
-      // fallback below
+      // fallback
     }
-    // Ohne Token: zur Admin-Ansicht (Login-Form) weiterleiten
+    if (accessToken) {
+      redirect(`/termin/${booking.uid}?token=${encodeURIComponent(accessToken)}`);
+    }
+    // Fallback: Admin-Seite (Login-Formular) – originales Verhalten
     redirect(`/admin/${booking.uid}`);
   }
 
