@@ -10,7 +10,7 @@ export async function OPTIONS(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  if (!(await rateLimitIP(request, 30, 60_000))) {
+  if (!(await rateLimitIP(request, 30, 60_000, "bookings-list"))) {
     return addCorsStrict(
       NextResponse.json({ error: "Zu viele Anfragen" }, { status: 429 }),
       request

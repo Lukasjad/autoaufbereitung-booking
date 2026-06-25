@@ -10,7 +10,7 @@ export async function OPTIONS(request: NextRequest) {
 export async function GET(request: NextRequest) {
   const origin = getOrigin(request);
 
-  if (!(await rateLimitIP(request, 30, 60_000))) {
+  if (!(await rateLimitIP(request, 30, 60_000, "slots"))) {
     return addCors(
       NextResponse.json({ error: "Zu viele Anfragen" }, { status: 429 }),
       origin

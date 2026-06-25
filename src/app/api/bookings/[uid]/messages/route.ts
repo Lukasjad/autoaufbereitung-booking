@@ -49,7 +49,7 @@ export async function GET(
 ) {
   const { uid } = await params;
 
-  if (!(await rateLimitIP(request, 30, 60_000))) {
+  if (!(await rateLimitIP(request, 30, 60_000, "messages-get"))) {
     return addCorsStrict(
       NextResponse.json({ error: "Zu viele Anfragen" }, { status: 429 }),
       request
@@ -98,7 +98,7 @@ export async function POST(
 ) {
   const { uid } = await params;
 
-  if (!(await rateLimitIP(request, 10, 60_000))) {
+  if (!(await rateLimitIP(request, 10, 60_000, "messages-post"))) {
     return addCorsStrict(
       NextResponse.json({ error: "Zu viele Anfragen" }, { status: 429 }),
       request

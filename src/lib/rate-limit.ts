@@ -29,34 +29,33 @@ export async function rateLimitIP(
   request: Request,
   max = 10,
   windowMs = 60_000,
+  route = "default",
 ): Promise<boolean> {
   const ip = ipFromRequest(request);
+  const key = `${route}:${ip}`;
   const db = getDb();
 
   if (!db) {
-    // Fallback: per-process limit (besser als nichts)
-    return fallbackRateLimit(ip, max, windowMs);
+    return fallbackRateLimit(key, max, windowMs);
   }
 
   try {
     const ws = windowStart(windowMs);
 
-    // Alte Einträge dieser IP bereinigen (nutzt Index auf key, created_at)
-    await db.from("rate_limits").delete().eq("key", ip).lt("created_at", ws);
+    await db.from("rate_limits").delete().eq("key", key).lt("created_at", ws);
 
-    // Anzahl der verbleibenden Requests zählen
     const { count } = await db
       .from("rate_limits")
       .select("*", { count: "exact", head: true })
-      .eq("key", ip);
+      .eq("key", key);
 
     if (count != null && count >= max) return false;
 
-    await db.from("rate_limits").insert({ key: ip } as any);
+    await db.from("rate_limits").insert({ key } as any);
 
     return true;
   } catch {
-    return fallbackRateLimit(ip, max, windowMs);
+    return fallbackRateLimit(key, max, windowMs);
   }
 }
 
