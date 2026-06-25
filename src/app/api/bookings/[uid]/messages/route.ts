@@ -50,7 +50,7 @@ export async function GET(
   const origin = getOrigin(request);
   const { uid } = await params;
 
-  if (!rateLimitIP(request, 30, 60_000)) {
+  if (!(await rateLimitIP(request, 30, 60_000))) {
     return addCors(
       NextResponse.json({ error: "Zu viele Anfragen" }, { status: 429 }),
       origin
@@ -100,7 +100,7 @@ export async function POST(
   const origin = getOrigin(request);
   const { uid } = await params;
 
-  if (!rateLimitIP(request, 10, 60_000)) {
+  if (!(await rateLimitIP(request, 10, 60_000))) {
     return addCors(
       NextResponse.json({ error: "Zu viele Anfragen" }, { status: 429 }),
       origin

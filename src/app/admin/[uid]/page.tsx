@@ -38,27 +38,33 @@ export default function AdminBookingDetail() {
   const chatEnd = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Session-Passwort beim Mount laden und einmalig verifizieren
   useEffect(() => {
     const stored = sessionStorage.getItem("admin_password");
-    if (stored) setPassword(stored);
-  }, []);
+    if (!stored) { setLoginLoading(false); return; }
 
-  useEffect(() => {
-    if (!password) return;
+    // Passwort nur setzen (damit Login-Form nicht flackert) und
+    // dann im selben Effekt gegen die API prüfen
+    setPassword(stored);
+    setLoginLoading(true);
+
     fetch(`/api/bookings/${uid}`, {
-      headers: { Authorization: `Bearer ${password}` },
+      headers: { Authorization: `Bearer ${stored}` },
     })
       .then(async (r) => {
         if (r.status === 401) {
           sessionStorage.removeItem("admin_password");
-          router.push("/admin");
-          return;
+          return; // Login-Form zeigen
         }
         const data = await r.json();
-        if (data?.data) setBooking(data.data);
+        if (data?.data) {
+          setBooking(data.data);
+          setLoggedIn(true);
+        }
       })
-      .catch(() => {});
-  }, [uid, password, router]);
+      .catch(() => {})
+      .finally(() => setLoginLoading(false));
+  }, [uid]);
 
   function loadMessages() {
     fetch(`/api/bookings/${uid}/messages`, {
@@ -89,8 +95,18 @@ export default function AdminBookingDetail() {
         alert("Falsches Passwort");
         return;
       }
+      // Passwort gültig → Booking-Details laden
+      const bookingRes = await fetch(`/api/bookings/${uid}`, {
+        headers: { Authorization: `Bearer ${password}` },
+      });
+      if (bookingRes.ok) {
+        const data = await bookingRes.json();
+        if (data?.data) setBooking(data.data);
+      }
       sessionStorage.setItem("admin_password", password);
       setLoggedIn(true);
+    } catch {
+      alert("Fehler beim Login");
     } finally {
       setLoginLoading(false);
     }
