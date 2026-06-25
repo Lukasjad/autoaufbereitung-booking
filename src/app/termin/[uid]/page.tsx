@@ -145,7 +145,9 @@ function TerminDetailContent() {
         loadMessages();
       }
     } catch (err) {
-      alert(`Upload fehlgeschlagen: ${err instanceof Error ? err.message : "Unbekannter Fehler"}`);
+      console.error("Upload error:", err);
+      const msg = err instanceof Error ? `${err.name}: ${err.message}` : JSON.stringify(err);
+      alert(`Upload fehlgeschlagen: ${msg}`);
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
