@@ -46,6 +46,7 @@ function TerminDetailContent() {
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const chatEnd = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!uid) {
@@ -102,6 +103,7 @@ function TerminDetailContent() {
       });
       if (res.ok) {
         setInputText("");
+        inputRef.current?.blur();
         loadMessages();
       }
     } finally {
@@ -331,6 +333,7 @@ function TerminDetailContent() {
                   className="flex gap-2"
                 >
                   <input
+                    ref={inputRef}
                     type="text"
                     value={inputText}
                     onChange={(e) => setInputText(e.target.value)}

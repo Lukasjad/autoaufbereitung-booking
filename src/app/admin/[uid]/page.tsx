@@ -35,6 +35,7 @@ export default function AdminBookingDetail() {
   const [inputText, setInputText] = useState("");
   const [sending, setSending] = useState(false);
   const chatEnd = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const stored = sessionStorage.getItem("admin_password");
@@ -103,6 +104,7 @@ export default function AdminBookingDetail() {
       });
       if (res.ok) {
         setInputText("");
+        inputRef.current?.blur();
         loadMessages();
       }
     } finally {
@@ -344,6 +346,7 @@ export default function AdminBookingDetail() {
               >
                 <div className="flex gap-2">
                   <input
+                    ref={inputRef}
                     type="text"
                     value={inputText}
                     onChange={(e) => setInputText(e.target.value)}
