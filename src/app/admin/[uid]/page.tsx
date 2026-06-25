@@ -5,6 +5,12 @@ import { useParams, useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
 import Image from "next/image";
+import { generateReactHelpers } from "@uploadthing/react";
+import type { OurFileRouter } from "@/app/api/uploadthing/core";
+
+const { uploadFiles } = generateReactHelpers<OurFileRouter>({
+  url: "/api/uploadthing",
+});
 
 interface Message {
   id: number;
@@ -34,9 +40,11 @@ export default function AdminBookingDetail() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState("");
   const [sending, setSending] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [loginLoading, setLoginLoading] = useState(false);
   const chatEnd = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Session-Passwort beim Mount laden und einmalig verifizieren
   useEffect(() => {
@@ -131,6 +139,33 @@ export default function AdminBookingDetail() {
       }
     } finally {
       setSending(false);
+    }
+  }
+
+  async function handleImageUpload(files: FileList | null) {
+    if (!files || files.length === 0) return;
+    setUploading(true);
+    try {
+      const res = await uploadFiles("damageImage", {
+        files: Array.from(files),
+      });
+      const urls = res.map((f) => f.ufsUrl ?? f.url).filter(Boolean);
+      if (urls.length > 0) {
+        await fetch(`/api/bookings/${uid}/messages`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${password}`,
+          },
+          body: JSON.stringify({ imageUrls: urls }),
+        });
+        loadMessages();
+      }
+    } catch (err) {
+      alert(`Upload fehlgeschlagen: ${err instanceof Error ? err.message : "Unbekannter Fehler"}`);
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   }
 
@@ -377,7 +412,7 @@ export default function AdminBookingDetail() {
                   e.preventDefault();
                   sendMessage();
                 }}
-                className="px-5 py-3 border-t border-gray-100"
+                className="px-5 py-3 border-t border-gray-100 space-y-2"
               >
                 <div className="flex gap-2">
                   <input
@@ -396,6 +431,24 @@ export default function AdminBookingDetail() {
                   >
                     {sending ? "..." : "Senden"}
                   </button>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading}
+                    className="text-sm text-emerald-600 hover:text-emerald-700 font-medium disabled:opacity-40"
+                  >
+                    {uploading ? "Upload läuft..." : "+ Bilder hochladen"}
+                  </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={(e) => handleImageUpload(e.target.files)}
+                    className="hidden"
+                  />
                 </div>
               </form>
             </div>
