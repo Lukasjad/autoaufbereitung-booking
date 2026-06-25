@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
         language: "de",
         ...(phoneNumber ? { phoneNumber } : {}),
       },
-      location: shortLink,
+      location: `${shortLink}?admin=1`,
       bookingFieldsResponses: {
         fahrzeugmarke,
         fahrzeugmodell,

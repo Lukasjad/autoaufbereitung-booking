@@ -3,10 +3,13 @@ import { getAllBookings } from "@/lib/cal";
 
 export default async function ShortLinkPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ metaId: string }>;
+  searchParams: Promise<{ admin?: string }>;
 }) {
   const { metaId } = await params;
+  const { admin } = await searchParams;
   const data = await getAllBookings();
   const bookings = data?.data || data?.bookings || [];
   const booking = bookings.find(
@@ -14,6 +17,9 @@ export default async function ShortLinkPage({
   );
 
   if (booking?.uid) {
+    if (admin === "1") {
+      redirect(`/admin/${booking.uid}`);
+    }
     const token = booking.metadata?.access_token;
     if (token) {
       redirect(`/termin/${booking.uid}?token=${token}`);
