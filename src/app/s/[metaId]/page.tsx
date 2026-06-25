@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getAllBookings } from "@/lib/cal";
+import { getAllBookings, getBookingByUid } from "@/lib/cal";
 
 export default async function ShortLinkPage({
   params,
@@ -14,9 +14,18 @@ export default async function ShortLinkPage({
   );
 
   if (booking?.uid) {
-    const accessToken = booking.metadata?.access_token || "";
-    const query = accessToken ? `?token=${encodeURIComponent(accessToken)}` : "";
-    redirect(`/termin/${booking.uid}${query}`);
+    try {
+      const full = await getBookingByUid(booking.uid);
+      const meta = full?.data?.metadata || {};
+      const accessToken = meta.access_token || meta.accessToken || "";
+      if (accessToken) {
+        redirect(`/termin/${booking.uid}?token=${encodeURIComponent(accessToken)}`);
+      }
+    } catch {
+      // fallback below
+    }
+    // Ohne Token: zur Admin-Ansicht (Login-Form) weiterleiten
+    redirect(`/admin/${booking.uid}`);
   }
 
   return (

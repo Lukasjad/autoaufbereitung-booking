@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
     if (Array.isArray(safe?.data)) {
       safe.data = safe.data.map((b: any) => {
         if (!b.metadata) return b;
-        const { access_token, ...rest } = b.metadata;
+        const { access_token, accessToken, ...rest } = b.metadata;
         return { ...b, metadata: rest };
       });
     }

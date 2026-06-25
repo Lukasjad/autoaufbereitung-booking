@@ -11,7 +11,9 @@ async function verifyCustomer(uid: string, token: string | null): Promise<boolea
   if (!token) return false;
   try {
     const data = await getBookingByUid(uid);
-    return data?.data?.metadata?.access_token === token;
+    const meta = data?.data?.metadata || {};
+    const stored = meta.access_token || meta.accessToken || "";
+    return stored === token;
   } catch {
     return false;
   }

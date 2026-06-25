@@ -5,11 +5,12 @@ const CAL_API = "https://api.cal.com/v2";
 function normalizeBooking(booking: any): any {
   const att = booking.attendees?.[0];
   if (att) {
-    if (!booking.metadata && att.metadata) {
-      booking.metadata = att.metadata;
+    // Metadaten aus attendee in booking mergen (Cal.com speichert custom fields oft nur im attendee)
+    if (att.metadata) {
+      booking.metadata = { ...att.metadata, ...booking.metadata };
     }
-    if (!booking.bookingFieldsResponses && att.bookingFieldsResponses) {
-      booking.bookingFieldsResponses = att.bookingFieldsResponses;
+    if (att.bookingFieldsResponses) {
+      booking.bookingFieldsResponses = { ...att.bookingFieldsResponses, ...booking.bookingFieldsResponses };
     }
   }
   return booking;
