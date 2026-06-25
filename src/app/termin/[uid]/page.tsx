@@ -272,8 +272,11 @@ function TerminDetailContent() {
                 {messages.map((msg) => (
                   <div
                     key={msg.id}
-                    className={`flex ${msg.sender === "customer" ? "justify-end" : "justify-start"}`}
+                    className={`flex flex-col ${msg.sender === "customer" ? "items-end" : "items-start"}`}
                   >
+                    <span className={`text-[10px] mb-0.5 px-1 ${msg.sender === "customer" ? "text-blue-500" : "text-gray-400"}`}>
+                      {msg.sender === "customer" ? "Du" : "Elbe Smart Repair"}
+                    </span>
                     <div
                       className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${
                         msg.sender === "customer"

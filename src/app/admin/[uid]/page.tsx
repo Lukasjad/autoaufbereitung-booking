@@ -285,12 +285,15 @@ export default function AdminBookingDetail() {
                 {messages.map((msg) => (
                   <div
                     key={msg.id}
-                    className={`flex ${msg.sender === "admin" ? "justify-end" : "justify-start"}`}
+                    className={`flex flex-col ${msg.sender === "admin" ? "items-end" : "items-start"}`}
                   >
+                    <span className={`text-[10px] mb-0.5 px-1 ${msg.sender === "admin" ? "text-emerald-500" : "text-gray-400"}`}>
+                      {msg.sender === "admin" ? "Du" : attendee?.name || "Kunde"}
+                    </span>
                     <div
                       className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${
                         msg.sender === "admin"
-                          ? "bg-blue-600 text-white"
+                          ? "bg-emerald-600 text-white"
                           : "bg-gray-100 text-gray-900"
                       }`}
                     >
@@ -321,7 +324,7 @@ export default function AdminBookingDetail() {
                       )}
                       <p
                         className={`text-xs mt-1 ${
-                          msg.sender === "admin" ? "text-blue-200" : "text-gray-400"
+                          msg.sender === "admin" ? "text-emerald-200" : "text-gray-400"
                         }`}
                       >
                         {format(new Date(msg.created_at), "HH:mm", { locale: de })}
