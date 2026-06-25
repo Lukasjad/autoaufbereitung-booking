@@ -41,16 +41,14 @@ export async function rateLimitIP(
   try {
     const ws = windowStart(windowMs);
 
-    // cleanup alte Einträge (ca. 1% der Aufrufe)
-    if (Math.random() < 0.01) {
-      Promise.resolve(db.from("rate_limits").delete().lt("created_at", ws)).then(() => {}).catch(() => {});
-    }
+    // Alte Einträge dieser IP bereinigen (nutzt Index auf key, created_at)
+    await db.from("rate_limits").delete().eq("key", ip).lt("created_at", ws);
 
+    // Anzahl der verbleibenden Requests zählen
     const { count } = await db
       .from("rate_limits")
       .select("*", { count: "exact", head: true })
-      .eq("key", ip)
-      .gte("created_at", ws);
+      .eq("key", ip);
 
     if (count != null && count >= max) return false;
 
