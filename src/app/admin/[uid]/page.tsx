@@ -172,6 +172,7 @@ export default function AdminBookingDetail() {
   }
 
   const meta = booking.metadata || {};
+  const accessToken = meta.access_token || meta.accessToken || "";
   const attendee = booking.attendees?.[0];
   const bilderStr = meta.bilder || "";
   const bilder = bilderStr ? bilderStr.split(",").map((u) => u.trim()).filter(Boolean) : [];
@@ -179,12 +180,24 @@ export default function AdminBookingDetail() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-5xl mx-auto py-8 px-4">
-        <button
-          onClick={() => router.push("/admin")}
-          className="text-sm text-gray-500 hover:text-gray-700 mb-4 block"
-        >
-          ← Zurück zur Übersicht
-        </button>
+        <div className="flex items-center gap-3 mb-4">
+          <button
+            onClick={() => router.push("/admin")}
+            className="text-sm text-gray-500 hover:text-gray-700"
+          >
+            ← Zurück zur Übersicht
+          </button>
+          {accessToken && (
+            <a
+              href={`/termin/${booking.uid}?token=${encodeURIComponent(accessToken)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-blue-600 hover:text-blue-700 font-medium ml-auto"
+            >
+              Kundenansicht öffnen ↗
+            </a>
+          )}
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
           <div className="lg:col-span-3 space-y-4">
