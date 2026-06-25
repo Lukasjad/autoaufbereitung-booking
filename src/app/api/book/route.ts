@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createBooking } from "@/lib/cal";
 import { generateLinkId } from "@/lib/id";
-import { sanitize, validEmail, validPhone } from "@/lib/validate";
+import { sanitize, validEmail, validPhone, validKennzeichen } from "@/lib/validate";
 import { addCors, corsResponse, getOrigin } from "@/lib/cors";
 import { rateLimitIP } from "@/lib/rate-limit";
 import { sendBookingConfirmation } from "@/lib/email";
@@ -28,10 +28,29 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { start, attendee, metadata } = body;
 
-    if (!start || !attendee?.name || !attendee?.email) {
+    if (!start || typeof start !== "string" || start.length > 50) {
       return addCors(
         NextResponse.json(
-          { error: "Missing required fields: start, attendee.name, attendee.email" },
+          { error: "Ungültiger Termin" },
+          { status: 400 }
+        ),
+        origin
+      );
+    }
+    if (isNaN(Date.parse(start))) {
+      return addCors(
+        NextResponse.json(
+          { error: "Ungültiges Datumsformat" },
+          { status: 400 }
+        ),
+        origin
+      );
+    }
+
+    if (!attendee?.name || !attendee?.email) {
+      return addCors(
+        NextResponse.json(
+          { error: "Missing required fields: attendee.name, attendee.email" },
           { status: 400 }
         ),
         origin
@@ -80,6 +99,13 @@ export async function POST(request: NextRequest) {
     if (fahrzeugmarke.length > 50 || fahrzeugmodell.length > 50 || kennzeichen.length > 20) {
       return addCors(
         NextResponse.json({ error: "Eingabefelder zu lang" }, { status: 400 }),
+        origin
+      );
+    }
+
+    if (kennzeichen && !validKennzeichen(kennzeichen)) {
+      return addCors(
+        NextResponse.json({ error: "Ungültiges Kennzeichen-Format (z.B. AB-CD 123)" }, { status: 400 }),
         origin
       );
     }

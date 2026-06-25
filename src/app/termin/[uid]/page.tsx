@@ -69,6 +69,10 @@ function TerminDetailContent() {
         const b = data?.data;
         if (!b) throw new Error("Buchung nicht gefunden");
         setBooking(b);
+        // Token aus der URL entfernen (browser history, Referrer, Server-Logs)
+        if (token && window.location.search.includes("token=")) {
+          window.history.replaceState({}, "", `/termin/${uid}`);
+        }
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
