@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { getBookingByUid } from "@/lib/cal";
 import { sanitize } from "@/lib/validate";
-import { addCors, corsResponse, getOrigin } from "@/lib/cors";
+import { addCorsStrict, corsResponse } from "@/lib/cors";
 import { rateLimitIP } from "@/lib/rate-limit";
 import { env } from "@/lib/env";
+import { getSupabase } from "@/lib/supabase";
 
 async function verifyCustomer(uid: string, token: string | null): Promise<boolean> {
   if (!token) return false;
@@ -32,7 +33,6 @@ function isSupabaseConfigured(): boolean {
 
 function getSupabaseOrNull() {
   try {
-    const { getSupabase } = require("@/lib/supabase");
     return getSupabase();
   } catch {
     return null;
@@ -40,20 +40,19 @@ function getSupabaseOrNull() {
 }
 
 export async function OPTIONS(request: NextRequest) {
-  return corsResponse(getOrigin(request));
+  return corsResponse(request.headers.get("origin") || "");
 }
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ uid: string }> }
 ) {
-  const origin = getOrigin(request);
   const { uid } = await params;
 
   if (!(await rateLimitIP(request, 30, 60_000))) {
-    return addCors(
+    return addCorsStrict(
       NextResponse.json({ error: "Zu viele Anfragen" }, { status: 429 }),
-      origin
+      request
     );
   }
 
@@ -62,19 +61,19 @@ export async function GET(
   const isCustomer = !isAdmin && await verifyCustomer(uid, token);
 
   if (!isAdmin && !isCustomer) {
-    return addCors(
+    return addCorsStrict(
       NextResponse.json({ error: "Unauthorized" }, { status: 401 }),
-      origin
+      request
     );
   }
 
   if (!isSupabaseConfigured()) {
-    return addCors(NextResponse.json({ data: [] }), origin);
+    return addCorsStrict(NextResponse.json({ data: [] }), request);
   }
 
   const supabase = getSupabaseOrNull();
   if (!supabase) {
-    return addCors(NextResponse.json({ data: [] }), origin);
+    return addCorsStrict(NextResponse.json({ data: [] }), request);
   }
 
   const { data, error } = await supabase
@@ -84,26 +83,25 @@ export async function GET(
     .order("created_at", { ascending: true });
 
   if (error) {
-    return addCors(
+    return addCorsStrict(
       NextResponse.json({ error: error.message }, { status: 500 }),
-      origin
+      request
     );
   }
 
-  return addCors(NextResponse.json({ data }), origin);
+  return addCorsStrict(NextResponse.json({ data }), request);
 }
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ uid: string }> }
 ) {
-  const origin = getOrigin(request);
   const { uid } = await params;
 
   if (!(await rateLimitIP(request, 10, 60_000))) {
-    return addCors(
+    return addCorsStrict(
       NextResponse.json({ error: "Zu viele Anfragen" }, { status: 429 }),
-      origin
+      request
     );
   }
 
@@ -112,24 +110,24 @@ export async function POST(
   const isCustomer = !isAdmin && await verifyCustomer(uid, token);
 
   if (!isAdmin && !isCustomer) {
-    return addCors(
+    return addCorsStrict(
       NextResponse.json({ error: "Unauthorized" }, { status: 401 }),
-      origin
+      request
     );
   }
 
   if (!isSupabaseConfigured()) {
-    return addCors(
+    return addCorsStrict(
       NextResponse.json({ error: "Chat nicht verfügbar (Supabase nicht konfiguriert)" }, { status: 503 }),
-      origin
+      request
     );
   }
 
   const supabase = getSupabaseOrNull();
   if (!supabase) {
-    return addCors(
+    return addCorsStrict(
       NextResponse.json({ error: "Chat nicht verfügbar" }, { status: 503 }),
-      origin
+      request
     );
   }
 
@@ -138,9 +136,9 @@ export async function POST(
   const imageUrlsRaw = body.imageUrls || [];
 
   if (!textRaw && imageUrlsRaw.length === 0) {
-    return addCors(
+    return addCorsStrict(
       NextResponse.json({ error: "Text oder Bilder erforderlich" }, { status: 400 }),
-      origin
+      request
     );
   }
 
@@ -163,11 +161,11 @@ export async function POST(
     .single();
 
   if (error) {
-    return addCors(
+    return addCorsStrict(
       NextResponse.json({ error: error.message }, { status: 500 }),
-      origin
+      request
     );
   }
 
-  return addCors(NextResponse.json({ data }), origin);
+  return addCorsStrict(NextResponse.json({ data }), request);
 }

@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { getBookingByUid } from "@/lib/cal";
-import { addCors, corsResponse, getOrigin } from "@/lib/cors";
+import { addCorsStrict, corsResponse } from "@/lib/cors";
 import { env } from "@/lib/env";
 
 export async function OPTIONS(request: NextRequest) {
-  return corsResponse(getOrigin(request));
+  return corsResponse(request.headers.get("origin") || "");
 }
 
 async function verifyAccess(uid: string, token: string | null): Promise<boolean> {
@@ -29,7 +29,6 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ uid: string }> }
 ) {
-  const origin = getOrigin(request);
   const { uid } = await params;
   const token = request.nextUrl.searchParams.get("token");
   const legacy = request.nextUrl.searchParams.get("legacy") === "1";
@@ -40,9 +39,9 @@ export async function GET(
     const isLegacy = !isAdmin && !isAccess && legacy;
 
     if (!isAdmin && !isAccess && !isLegacy) {
-      return addCors(
+      return addCorsStrict(
         NextResponse.json({ error: "Unauthorized" }, { status: 401 }),
-        origin
+        request
       );
     }
 
@@ -53,12 +52,12 @@ export async function GET(
       safe.data.metadata = rest;
     }
 
-    return addCors(NextResponse.json(safe), origin);
+    return addCorsStrict(NextResponse.json(safe), request);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
-    return addCors(
+    return addCorsStrict(
       NextResponse.json({ error: message }, { status: 500 }),
-      origin
+      request
     );
   }
 }
