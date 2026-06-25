@@ -34,6 +34,7 @@ export default function AdminBookingDetail() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState("");
   const [sending, setSending] = useState(false);
+  const [loginLoading, setLoginLoading] = useState(false);
   const chatEnd = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -79,15 +80,20 @@ export default function AdminBookingDetail() {
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
-    const res = await fetch("/api/bookings", {
-      headers: { Authorization: `Bearer ${password}` },
-    });
-    if (!res.ok) {
-      alert("Falsches Passwort");
-      return;
+    setLoginLoading(true);
+    try {
+      const res = await fetch("/api/bookings", {
+        headers: { Authorization: `Bearer ${password}` },
+      });
+      if (!res.ok) {
+        alert("Falsches Passwort");
+        return;
+      }
+      sessionStorage.setItem("admin_password", password);
+      setLoggedIn(true);
+    } finally {
+      setLoginLoading(false);
     }
-    sessionStorage.setItem("admin_password", password);
-    setLoggedIn(true);
   }
 
   async function sendMessage() {
@@ -130,10 +136,10 @@ export default function AdminBookingDetail() {
             />
             <button
               type="submit"
-              disabled={!password}
+              disabled={!password || loginLoading}
               className="w-full py-3 bg-blue-600 text-white font-semibold rounded-lg disabled:opacity-40 hover:bg-blue-700 transition-colors"
             >
-              Einloggen
+              {loginLoading ? "Lädt..." : "Einloggen"}
             </button>
           </form>
         </div>
