@@ -43,7 +43,7 @@ export async function rateLimitIP(
 
     // cleanup alte Einträge (ca. 1% der Aufrufe)
     if (Math.random() < 0.01) {
-      db.from("rate_limits").delete().lt("created_at", ws).then(() => {}).catch(() => {});
+      Promise.resolve(db.from("rate_limits").delete().lt("created_at", ws)).then(() => {}).catch(() => {});
     }
 
     const { count } = await db
@@ -54,7 +54,7 @@ export async function rateLimitIP(
 
     if (count != null && count >= max) return false;
 
-    await db.from("rate_limits").insert({ key: ip });
+    await db.from("rate_limits").insert({ key: ip } as any);
 
     return true;
   } catch {
