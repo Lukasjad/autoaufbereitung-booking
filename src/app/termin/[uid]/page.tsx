@@ -54,13 +54,15 @@ function TerminDetailContent() {
       setLoading(false);
       return;
     }
-    if (!token && !legacy) {
+    // Token aus sessionStorage falls nicht in URL (z.B. nach Refresh)
+    const tkn = token || sessionStorage.getItem(`termin_token_${uid}`) || "";
+    if (!tkn && !legacy) {
       setError("Fehlender Zugriffstoken");
       setLoading(false);
       return;
     }
-    const params = token
-      ? `token=${encodeURIComponent(token)}`
+    const params = tkn
+      ? `token=${encodeURIComponent(tkn)}`
       : "legacy=1";
     fetch(`/api/bookings/${uid}?${params}`)
       .then(async (r) => {
@@ -69,6 +71,10 @@ function TerminDetailContent() {
         const b = data?.data;
         if (!b) throw new Error("Buchung nicht gefunden");
         setBooking(b);
+        // Token in sessionStorage sichern (für Refresh-Sicherheit)
+        if (tkn) {
+          sessionStorage.setItem(`termin_token_${uid}`, tkn);
+        }
         // Token aus der URL entfernen (browser history, Referrer, Server-Logs)
         if (token && window.location.search.includes("token=")) {
           window.history.replaceState({}, "", `/termin/${uid}`);
@@ -76,11 +82,16 @@ function TerminDetailContent() {
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
-  }, [uid, token]);
+  }, [uid, token, legacy]);
+
+  function activeToken(): string {
+    return token || sessionStorage.getItem(`termin_token_${uid}`) || "";
+  }
 
   function loadMessages() {
-    if (!uid || !token) return;
-    fetch(`/api/bookings/${uid}/messages?token=${encodeURIComponent(token)}`)
+    const t = activeToken();
+    if (!uid || !t) return;
+    fetch(`/api/bookings/${uid}/messages?token=${encodeURIComponent(t)}`)
       .then(async (r) => {
         const data = await r.json();
         if (data?.data) setMessages(data.data);
@@ -96,11 +107,12 @@ function TerminDetailContent() {
   }, [booking, token, uid]);
 
   async function sendMessage(text?: string) {
+    const t = activeToken();
     const msg = text ?? inputText.trim();
-    if (!msg) return;
+    if (!msg || !t) return;
     setSending(true);
     try {
-      const res = await fetch(`/api/bookings/${uid}/messages?token=${encodeURIComponent(token!)}`, {
+      const res = await fetch(`/api/bookings/${uid}/messages?token=${encodeURIComponent(t)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: msg }),
@@ -116,7 +128,8 @@ function TerminDetailContent() {
   }
 
   async function handleImageUpload(files: FileList | null) {
-    if (!files || files.length === 0) return;
+    const t = activeToken();
+    if (!files || files.length === 0 || !t) return;
     setUploading(true);
     try {
       const res = await uploadFiles("damageImage", {
@@ -124,7 +137,7 @@ function TerminDetailContent() {
       });
       const urls = res.map((f) => f.ufsUrl ?? f.url).filter(Boolean);
       if (urls.length > 0) {
-        await fetch(`/api/bookings/${uid}/messages?token=${encodeURIComponent(token!)}`, {
+        await fetch(`/api/bookings/${uid}/messages?token=${encodeURIComponent(t)}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ imageUrls: urls }),
