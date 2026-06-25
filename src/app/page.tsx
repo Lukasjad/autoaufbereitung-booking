@@ -16,7 +16,7 @@ export default function Home() {
     kennzeichen: "",
     baujahr: "",
     notizen: "",
-    service: "",
+    services: [] as string[],
     treibstoff: "",
     kilometerstand: "",
     schadensbeschreibung: "",
@@ -27,8 +27,17 @@ export default function Home() {
     setForm((prev) => ({ ...prev, [field]: value }));
   }
 
+  function toggleService(s: string) {
+    setForm((prev) => ({
+      ...prev,
+      services: prev.services.includes(s)
+        ? prev.services.filter((v) => v !== s)
+        : [...prev.services, s],
+    }));
+  }
+
   function handleNext() {
-    if (!form.name || !form.email || !form.marke || !form.service) return;
+    if (!form.name || !form.email || !form.marke || form.services.length === 0) return;
     const bookingData = {
       name: form.name,
       email: form.email,
@@ -41,7 +50,7 @@ export default function Home() {
       },
       imageUrls: images,
       notizen: form.notizen,
-      service: form.service,
+      services: form.services,
       treibstoff: form.treibstoff,
       kilometerstand: form.kilometerstand,
       schadensbeschreibung: form.schadensbeschreibung,
@@ -54,7 +63,7 @@ export default function Home() {
     form.name.trim() &&
     form.email.trim() &&
     form.marke.trim() &&
-    form.service;
+    form.services.length > 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 py-12 px-4">
@@ -81,23 +90,41 @@ export default function Home() {
           {/* Service Selection */}
           <div>
             <label className="block text-sm font-semibold text-gray-800 mb-3">
-              Serviceauswahl *
+              Serviceauswahl * (mehrere möglich)
             </label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {SERVICES.map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  onClick={() => update("service", s)}
-                  className={`px-4 py-3 rounded-xl border-2 text-left transition-all ${
-                    form.service === s
-                      ? "border-blue-600 bg-blue-50 text-blue-800 font-medium"
-                      : "border-gray-200 bg-white text-gray-700 hover:border-gray-300"
-                  }`}
-                >
-                  {s}
-                </button>
-              ))}
+              {SERVICES.map((s) => {
+                const active = form.services.includes(s);
+                return (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => toggleService(s)}
+                    className={`px-4 py-3 rounded-xl border-2 text-left transition-all ${
+                      active
+                        ? "border-blue-600 bg-blue-50 text-blue-800 font-medium"
+                        : "border-gray-200 bg-white text-gray-700 hover:border-gray-300"
+                    }`}
+                  >
+                    <span className="flex items-center gap-3">
+                      <span
+                        className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 ${
+                          active
+                            ? "border-blue-600 bg-blue-600"
+                            : "border-gray-300"
+                        }`}
+                      >
+                        {active && (
+                          <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </span>
+                      <span>{s}</span>
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 

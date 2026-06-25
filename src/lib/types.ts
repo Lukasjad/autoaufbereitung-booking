@@ -12,7 +12,7 @@ export interface BookingFormData {
   vehicle: VehicleInfo;
   imageUrls: string[];
   notizen: string;
-  service: string;
+  services: string[];
   treibstoff: string;
   kilometerstand: string;
   schadensbeschreibung: string;

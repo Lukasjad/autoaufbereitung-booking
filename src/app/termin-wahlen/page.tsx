@@ -39,7 +39,7 @@ export default function TerminWahlen() {
             telefon: formData.telefon,
           },
           metadata: {
-            service: formData.service,
+            service: Array.isArray(formData.services) ? formData.services.join(", ") : formData.services,
             fahrzeugmarke: formData.vehicle.marke,
             fahrzeugmodell: formData.vehicle.modell,
             kennzeichen: formData.vehicle.kennzeichen,
@@ -97,7 +97,8 @@ export default function TerminWahlen() {
 
           <div className="mb-6 p-4 bg-gray-50 rounded-lg text-sm text-gray-700 space-y-1">
             <p>
-              <span className="font-medium">Service:</span> {formData.service}
+              <span className="font-medium">Services:</span>{" "}
+              {Array.isArray(formData.services) ? formData.services.join(", ") : formData.services}
             </p>
             <p>
               <span className="font-medium">Fahrzeug:</span> {formData.vehicle.marke}{" "}
