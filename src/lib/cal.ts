@@ -79,6 +79,19 @@ export async function getBookingByUid(uid: string) {
   return json;
 }
 
+export async function updateBookingLocation(uid: string, location: string) {
+  const res = await fetch(`${CAL_API}/bookings/${uid}`, {
+    method: "PATCH",
+    headers: getHeaders("2026-02-25"),
+    body: JSON.stringify({ location }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Cal.com update error ${res.status}: ${text}`);
+  }
+  return res.json();
+}
+
 export async function getAllBookings() {
   const res = await fetch(
     `${CAL_API}/bookings?eventTypeId=${env("CAL_EVENT_TYPE_ID")}&status=upcoming,past`,

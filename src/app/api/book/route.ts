@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createBooking } from "@/lib/cal";
+import { createBooking, updateBookingLocation } from "@/lib/cal";
 import { generateLinkId } from "@/lib/id";
 import { sanitize, validEmail, validPhone, validKennzeichen } from "@/lib/validate";
 import { addCors, corsResponse, getOrigin } from "@/lib/cors";
@@ -152,6 +152,13 @@ export async function POST(request: NextRequest) {
     const terminLink = bookingUid ? `${proto}://${host}/termin/${bookingUid}?token=${accessToken}` : "";
 
     if (bookingUid) {
+      // Cal.com Location (→ E-Mail / Cal-Ansicht) auf den direkten Kunden-Link setzen
+      try {
+        await updateBookingLocation(bookingUid, terminLink);
+      } catch {
+        console.log("Could not update Cal.com location (may not support PATCH)");
+      }
+
       try {
         await sendBookingConfirmation({
           to: email,
