@@ -1,13 +1,15 @@
-import DOMPurify from "isomorphic-dompurify";
+export function sanitize(v: string): string {
+  return v
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
+    .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, "")
+    .replace(/<[^>]*>/g, "")
+    .trim();
+}
 
 const ALLOWED_ORIGINS = [
   "autoaufbereitung-booking.vercel.app",
   "localhost:3000",
 ];
-
-export function sanitize(v: string): string {
-  return DOMPurify.sanitize(v, { ALLOWED_TAGS: [] }).trim();
-}
 
 export function validOrigin(origin: string | null): boolean {
   if (!origin) return true; // non-browser requests (curl, server-to-server)
