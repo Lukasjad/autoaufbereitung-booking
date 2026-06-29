@@ -18,6 +18,17 @@ async function verifyAccess(uid: string, token: string | null): Promise<boolean>
   return getToken(data?.data?.metadata) === token;
 }
 
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ uid: string }> }
+) {
+  const { uid } = await params;
+  const token = request.nextUrl.searchParams.get("token");
+
+  if (!(await rateLimitIP(request, 30, 60_000, "booking-get"))) {
+    return addCorsStrict(NextResponse.json({ error: "Zu viele Anfragen" }, { status: 429 }), request);
+  }
+
   try {
     const isAdmin = await verifyAdmin(request);
     const isAccess = !isAdmin && await verifyAccess(uid, token);

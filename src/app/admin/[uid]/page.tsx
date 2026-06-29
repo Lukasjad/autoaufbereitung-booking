@@ -28,7 +28,6 @@ interface BookingData {
 
 export default function AdminBookingDetail() {
   const { uid } = useParams<{ uid: string }>();
-  const router = useRouter();
   const searchParams = useSearchParams();
   const tokenParam = searchParams.get("token") || "";
   const [password, setPassword] = useState("");
