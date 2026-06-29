@@ -77,7 +77,7 @@ export async function GET(
 
   if (error) {
     return addCorsStrict(
-      NextResponse.json({ error: error.message }, { status: 500 }),
+      NextResponse.json({ error: error.message || JSON.stringify(error) }, { status: 500 }),
       request
     );
   }
@@ -158,8 +158,9 @@ export async function POST(
     .single();
 
   if (error) {
+    const msg = error.message || JSON.stringify(error) || "Unbekannter Datenbankfehler";
     return addCorsStrict(
-      NextResponse.json({ error: error.message }, { status: 500 }),
+      NextResponse.json({ error: msg }, { status: 500 }),
       request
     );
   }

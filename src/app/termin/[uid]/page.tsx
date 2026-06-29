@@ -131,7 +131,7 @@ function TerminDetailContent() {
           .then(async (r) => { const d = await r.json(); if (d?.data) setMessages(d.data); })
           .catch(() => {});
       } else {
-        const errBody = await res.json().catch(() => ({ error: res.statusText }));
+        const errBody = await res.json().catch(() => ({ error: res.statusText || `Fehler ${res.status}` }));
         throw new Error(errBody.error || `Serverfehler (${res.status})`);
       }
     } catch (err) {
