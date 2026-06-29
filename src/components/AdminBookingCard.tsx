@@ -49,7 +49,7 @@ export default function AdminBookingCard({ booking }: BookingCardProps) {
           {booking.status === "accepted"
             ? "Bestätigt"
             : booking.status === "pending"
-              ? "Ausstehend"
+              ? "Unbestätigt"
               : booking.status === "cancelled"
                 ? "Storniert"
                 : booking.status}

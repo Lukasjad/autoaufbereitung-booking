@@ -1,16 +1,11 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
 import Image from "next/image";
-import { generateReactHelpers } from "@uploadthing/react";
-import type { OurFileRouter } from "@/app/api/uploadthing/core";
-
-const { uploadFiles } = generateReactHelpers<OurFileRouter>({
-  url: "/api/uploadthing",
-});
+import { xhrUpload } from "@/lib/xhr-upload";
 
 interface Message {
   id: number;
@@ -34,26 +29,30 @@ interface BookingData {
 export default function AdminBookingDetail() {
   const { uid } = useParams<{ uid: string }>();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const tokenParam = searchParams.get("token") || "";
   const [password, setPassword] = useState("");
+  const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [loggedIn, setLoggedIn] = useState(false);
   const [booking, setBooking] = useState<BookingData | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState("");
   const [sending, setSending] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [stagedImages, setStagedImages] = useState<string[]>([]);
+  const stagedFilesRef = useRef<File[]>([]);
   const [loginLoading, setLoginLoading] = useState(false);
+  const [statusUpdating, setStatusUpdating] = useState<"ACCEPTED" | "REJECTED" | null>(null);
   const chatEnd = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Session-Passwort beim Mount laden und einmalig verifizieren
+  // Session-Token beim Mount laden und verifizieren
   useEffect(() => {
-    const stored = sessionStorage.getItem("admin_password");
+    const stored = sessionStorage.getItem("admin_session");
     if (!stored) { setLoginLoading(false); return; }
 
-    // Passwort nur setzen (damit Login-Form nicht flackert) und
-    // dann im selben Effekt gegen die API prüfen
-    setPassword(stored);
+    setSessionToken(stored);
     setLoginLoading(true);
 
     fetch(`/api/bookings/${uid}`, {
@@ -61,57 +60,97 @@ export default function AdminBookingDetail() {
     })
       .then(async (r) => {
         if (r.status === 401) {
-          sessionStorage.removeItem("admin_password");
-          return; // Login-Form zeigen
+          sessionStorage.removeItem("admin_session");
+          return;
         }
         const data = await r.json();
         if (data?.data) {
           setBooking(data.data);
           setLoggedIn(true);
+          fetch(`/api/bookings/${uid}/messages`, {
+            headers: { Authorization: `Bearer ${stored}` },
+          })
+            .then(async (r2) => { const d = await r2.json(); if (d?.data) setMessages(d.data); })
+            .catch(() => {});
         }
       })
       .catch(() => {})
       .finally(() => setLoginLoading(false));
   }, [uid]);
 
-  function loadMessages() {
-    fetch(`/api/bookings/${uid}/messages`, {
-      headers: { Authorization: `Bearer ${password}` },
-    })
-      .then(async (r) => {
-        const data = await r.json();
-        if (data?.data) setMessages(data.data);
-      })
-      .catch(() => {});
+  async function refreshBooking() {
+    try {
+      const res = await fetch(`/api/bookings/${uid}`, {
+        headers: { Authorization: `Bearer ${sessionToken}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.data) setBooking(data.data);
+      }
+    } catch {}
   }
 
+  async function handleStatusChange(newStatus: "ACCEPTED" | "REJECTED") {
+    setStatusUpdating(newStatus);
+    try {
+      const res = await fetch(`/api/bookings/${uid}/status`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${sessionToken}`,
+        },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (res.ok) {
+        await refreshBooking();
+      } else {
+        const err = await res.json();
+        alert(err.error || "Fehler beim Aktualisieren des Status");
+      }
+    } catch {
+      alert("Fehler beim Aktualisieren des Status");
+    } finally {
+      setStatusUpdating(null);
+    }
+  }
+
+  // Polling für neue Nachrichten
   useEffect(() => {
-    if (!password || !loggedIn) return;
-    loadMessages();
-    const interval = setInterval(loadMessages, 5000);
-    return () => clearInterval(interval);
-  }, [uid, password, loggedIn]);
+    if (!sessionToken || !loggedIn) return;
+    const iv = setInterval(() => {
+      fetch(`/api/bookings/${uid}/messages`, {
+        headers: { Authorization: `Bearer ${sessionToken}` },
+      })
+        .then(async (r) => { const d = await r.json(); if (d?.data) setMessages(d.data); })
+        .catch(() => {});
+    }, 5000);
+    return () => clearInterval(iv);
+  }, [uid, sessionToken, loggedIn]);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setLoginLoading(true);
     try {
-      const res = await fetch("/api/bookings", {
-        headers: { Authorization: `Bearer ${password}` },
+      const res = await fetch("/api/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
       });
       if (!res.ok) {
         alert("Falsches Passwort");
         return;
       }
-      // Passwort gültig → Booking-Details laden
+      const { token } = await res.json();
+      setSessionToken(token);
+      sessionStorage.setItem("admin_session", token);
+
       const bookingRes = await fetch(`/api/bookings/${uid}`, {
-        headers: { Authorization: `Bearer ${password}` },
+        headers: { Authorization: `Bearer ${token}` },
       });
       if (bookingRes.ok) {
         const data = await bookingRes.json();
         if (data?.data) setBooking(data.data);
       }
-      sessionStorage.setItem("admin_password", password);
       setLoggedIn(true);
     } catch {
       alert("Fehler beim Login");
@@ -121,80 +160,109 @@ export default function AdminBookingDetail() {
   }
 
   async function sendMessage() {
-    if (!inputText.trim()) return;
+    const msg = inputText.trim();
+    if (!msg && stagedFilesRef.current.length === 0) return;
     setSending(true);
     try {
+      let imageUrls: string[] = [];
+      if (stagedFilesRef.current.length > 0) {
+        setUploading(true);
+        const res = await xhrUpload("damageImage", stagedFilesRef.current);
+        imageUrls = res.map((f) => f.ufsUrl ?? f.url).filter(Boolean);
+        setUploading(false);
+      }
+      const body: Record<string, any> = {};
+      if (msg) body.text = msg;
+      if (imageUrls.length > 0) body.imageUrls = imageUrls;
       const res = await fetch(`/api/bookings/${uid}/messages`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${password}`,
+          Authorization: `Bearer ${sessionToken}`,
         },
-        body: JSON.stringify({ text: inputText.trim() }),
+        body: JSON.stringify(body),
       });
       if (res.ok) {
         setInputText("");
+        stagedFilesRef.current = [];
+        setStagedImages([]);
         inputRef.current?.blur();
-        loadMessages();
+        fetch(`/api/bookings/${uid}/messages`, {
+          headers: { Authorization: `Bearer ${sessionToken}` },
+        })
+          .then(async (r) => { const d = await r.json(); if (d?.data) setMessages(d.data); })
+          .catch(() => {});
       }
+    } catch (err) {
+      console.error("Send error:", err);
+      const msg = err instanceof Error ? `${err.name}: ${err.message}` : JSON.stringify(err);
+      alert(`Fehler beim Senden: ${msg}`);
     } finally {
       setSending(false);
     }
   }
 
-  async function handleImageUpload(files: FileList | null) {
+  function handleImageSelect(files: FileList | null) {
     if (!files || files.length === 0) return;
-    setUploading(true);
-    try {
-      const res = await uploadFiles("damageImage", {
-        files: Array.from(files),
-      });
-      const urls = res.map((f) => f.ufsUrl ?? f.url).filter(Boolean);
-      if (urls.length > 0) {
-        await fetch(`/api/bookings/${uid}/messages`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${password}`,
-          },
-          body: JSON.stringify({ imageUrls: urls }),
-        });
-        loadMessages();
-      }
-    } catch (err) {
-      console.error("Upload error:", err);
-      const msg = err instanceof Error ? `${err.name}: ${err.message}` : JSON.stringify(err);
-      alert(`Upload fehlgeschlagen: ${msg}`);
-    } finally {
-      setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
+    const neue = Array.from(files);
+    stagedFilesRef.current = [...stagedFilesRef.current, ...neue];
+    setStagedImages(stagedFilesRef.current.map((f) => URL.createObjectURL(f)));
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
+  function removeStagedImage(index: number) {
+    const url = stagedImages[index];
+    if (url) URL.revokeObjectURL(url);
+    stagedFilesRef.current = stagedFilesRef.current.filter((_, i) => i !== index);
+    setStagedImages(stagedFilesRef.current.map((f) => URL.createObjectURL(f)));
   }
 
   if (!password || !loggedIn) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-        <div className="max-w-sm w-full bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
-          <h1 className="text-xl font-bold text-gray-900 mb-6 text-center">
-            Admin Login
-          </h1>
-          <form onSubmit={handleLogin} className="space-y-4">
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Admin-Passwort"
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-              autoFocus
-            />
-            <button
-              type="submit"
-              disabled={!password || loginLoading}
-              className="w-full py-3 bg-blue-600 text-white font-semibold rounded-lg disabled:opacity-40 hover:bg-blue-700 transition-colors"
-            >
-              {loginLoading ? "Lädt..." : "Einloggen"}
-            </button>
-          </form>
+        <div className="w-full max-w-md space-y-6">
+          {/* Kundenbereich */}
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+            <h2 className="text-lg font-bold text-gray-900 mb-4 text-center">
+              Kundenlogin
+            </h2>
+            {tokenParam ? (
+              <a
+                href={`/termin/${uid}?token=${encodeURIComponent(tokenParam)}`}
+                className="block w-full py-3 bg-green-600 text-white font-semibold rounded-lg text-center hover:bg-green-700 transition-colors"
+              >
+                Zur Buchungsseite →
+              </a>
+            ) : (
+              <p className="text-sm text-gray-500 text-center">
+                Kein Zugangstoken vorhanden.
+              </p>
+            )}
+          </div>
+
+          {/* Admin Login */}
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+            <h2 className="text-lg font-bold text-gray-900 mb-4 text-center">
+              Admin Login
+            </h2>
+            <form onSubmit={handleLogin} className="space-y-4">
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Admin-Passwort"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                autoFocus
+              />
+              <button
+                type="submit"
+                disabled={!password || loginLoading}
+                className="w-full py-3 bg-blue-600 text-white font-semibold rounded-lg disabled:opacity-40 hover:bg-blue-700 transition-colors"
+              >
+                {loginLoading ? "Lädt..." : "Einloggen"}
+              </button>
+            </form>
+          </div>
         </div>
       </div>
     );
@@ -218,12 +286,6 @@ export default function AdminBookingDetail() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-5xl mx-auto py-8 px-4">
         <div className="flex items-center gap-3 mb-4">
-          <button
-            onClick={() => router.push("/admin")}
-            className="text-sm text-gray-500 hover:text-gray-700"
-          >
-            ← Zurück zur Übersicht
-          </button>
           {accessToken && (
             <a
               href={`/termin/${booking.uid}?token=${encodeURIComponent(accessToken)}`}
@@ -249,8 +311,22 @@ export default function AdminBookingDetail() {
                     <p className="text-sm text-gray-500">Tel: {attendee.phoneNumber}</p>
                   )}
                 </div>
-                <span className="text-xs font-medium px-3 py-1.5 rounded-full bg-green-100 text-green-800">
-                  {booking.status === "accepted" ? "Bestätigt" : booking.status}
+                <span className={`text-xs font-medium px-3 py-1.5 rounded-full ${
+                  booking.status === "accepted"
+                    ? "bg-green-100 text-green-800"
+                    : booking.status === "pending"
+                    ? "bg-yellow-100 text-yellow-800"
+                    : booking.status === "rejected"
+                    ? "bg-red-100 text-red-800"
+                    : "bg-gray-100 text-gray-800"
+                }`}>
+                  {booking.status === "accepted"
+                    ? "Bestätigt"
+                    : booking.status === "pending"
+                    ? "Unbestätigt"
+                    : booking.status === "rejected"
+                    ? "Abgelehnt"
+                    : booking.status}
                 </span>
               </div>
 
@@ -263,6 +339,25 @@ export default function AdminBookingDetail() {
                   <span className="font-medium">Buchungs-ID:</span> {booking.uid}
                 </p>
               </div>
+
+              {booking.status === "pending" && (
+                <div className="mt-4 flex gap-3">
+                  <button
+                    onClick={() => handleStatusChange("ACCEPTED")}
+                    disabled={statusUpdating !== null}
+                    className="flex-1 py-2.5 bg-green-600 text-white text-sm font-semibold rounded-lg disabled:opacity-40 hover:bg-green-700 transition-colors"
+                  >
+                    {statusUpdating === "ACCEPTED" ? "Wird bestätigt..." : "Annehmen"}
+                  </button>
+                  <button
+                    onClick={() => handleStatusChange("REJECTED")}
+                    disabled={statusUpdating !== null}
+                    className="flex-1 py-2.5 bg-red-600 text-white text-sm font-semibold rounded-lg disabled:opacity-40 hover:bg-red-700 transition-colors"
+                  >
+                    {statusUpdating === "REJECTED" ? "Wird abgelehnt..." : "Ablehnen"}
+                  </button>
+                </div>
+              )}
 
               {meta.service && (
                 <div className="mt-3">
@@ -416,22 +511,48 @@ export default function AdminBookingDetail() {
                 }}
                 className="px-5 py-3 border-t border-gray-100 space-y-2"
               >
+                {stagedImages.length > 0 && (
+                  <div className="flex flex-wrap gap-2 pb-1">
+                    {stagedImages.map((url, i) => (
+                      <div key={i} className="relative group">
+                        <img
+                          src={url}
+                          alt={`Bild ${i + 1}`}
+                          className="w-16 h-16 rounded-lg object-cover border border-gray-200"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeStagedImage(i)}
+                          className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <div className="flex gap-2">
-                  <input
+                  <textarea
                     ref={inputRef}
-                    type="text"
                     value={inputText}
                     onChange={(e) => setInputText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        sendMessage();
+                      }
+                    }}
                     placeholder="Nachricht eingeben..."
                     disabled={sending}
-                    className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none disabled:opacity-50"
+                    rows={1}
+                    className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none disabled:opacity-50 resize-none"
                   />
                   <button
                     type="submit"
-                    disabled={!inputText.trim() || sending}
+                    disabled={(!inputText.trim() && stagedImages.length === 0) || sending || uploading}
                     className="px-4 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-lg disabled:opacity-40 hover:bg-blue-700 transition-colors"
                   >
-                    {sending ? "..." : "Senden"}
+                    {uploading ? "Upload..." : sending ? "..." : "Senden"}
                   </button>
                 </div>
                 <div className="flex items-center gap-2">
@@ -441,14 +562,14 @@ export default function AdminBookingDetail() {
                     disabled={uploading}
                     className="text-sm text-emerald-600 hover:text-emerald-700 font-medium disabled:opacity-40"
                   >
-                    {uploading ? "Upload läuft..." : "+ Bilder hochladen"}
+                    + Bilder
                   </button>
                   <input
                     ref={fileInputRef}
                     type="file"
                     accept="image/*"
                     multiple
-                    onChange={(e) => handleImageUpload(e.target.files)}
+                    onChange={(e) => handleImageSelect(e.target.files)}
                     className="hidden"
                   />
                 </div>

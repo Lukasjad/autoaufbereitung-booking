@@ -39,9 +39,6 @@ export default function RootLayout({
               <Link href="/" className="text-gray-600 hover:text-gray-900 transition-colors">
                 Buchung
               </Link>
-              <Link href="/admin" className="text-gray-600 hover:text-gray-900 transition-colors">
-                Admin
-              </Link>
             </nav>
           </div>
         </header>

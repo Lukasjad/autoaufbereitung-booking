@@ -1,13 +1,8 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { generateReactHelpers } from "@uploadthing/react";
-import type { OurFileRouter } from "@/app/api/uploadthing/core";
+import { xhrUpload } from "@/lib/xhr-upload";
 import Image from "next/image";
-
-const { uploadFiles } = generateReactHelpers<OurFileRouter>({
-  url: "/api/uploadthing",
-});
 
 interface ImageUploadProps {
   images: string[];
@@ -22,9 +17,7 @@ export default function ImageUpload({ images, onImagesChange }: ImageUploadProps
     if (!files || files.length === 0) return;
     setUploading(true);
     try {
-      const res = await uploadFiles("damageImage", {
-        files: Array.from(files),
-      });
+      const res = await xhrUpload("damageImage", Array.from(files));
       const urls = res.map((f) => f.ufsUrl ?? f.url).filter(Boolean);
       if (urls.length > 0) {
         onImagesChange([...images, ...urls]);

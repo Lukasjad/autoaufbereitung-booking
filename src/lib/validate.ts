@@ -1,5 +1,24 @@
+import DOMPurify from "isomorphic-dompurify";
+
+const ALLOWED_ORIGINS = [
+  "autoaufbereitung-booking.vercel.app",
+  "localhost:3000",
+];
+
 export function sanitize(v: string): string {
-  return v.replace(/<[^>]*>/g, "").trim();
+  return DOMPurify.sanitize(v, { ALLOWED_TAGS: [] }).trim();
+}
+
+export function validOrigin(origin: string | null): boolean {
+  if (!origin) return true; // non-browser requests (curl, server-to-server)
+  try {
+    const u = new URL(origin);
+    return ALLOWED_ORIGINS.some(
+      (a) => u.host === a || u.host.endsWith(`.${a}`)
+    );
+  } catch {
+    return false;
+  }
 }
 
 export function validEmail(v: string): boolean {

@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import bcrypt from "bcryptjs";
 import { getBookingByUid } from "@/lib/cal";
-import { sanitize } from "@/lib/validate";
+import { sanitize, validOrigin } from "@/lib/validate";
 import { addCorsStrict, corsResponse } from "@/lib/cors";
 import { rateLimitIP } from "@/lib/rate-limit";
 import { env } from "@/lib/env";
 import { getSupabase } from "@/lib/supabase";
+import { sendAdminNewMessageNotification } from "@/lib/email";
+import { verifyAdmin } from "@/lib/admin-auth";
 
 async function verifyCustomer(uid: string, token: string | null): Promise<boolean> {
   if (!token) return false;
@@ -17,16 +18,6 @@ async function verifyCustomer(uid: string, token: string | null): Promise<boolea
   } catch {
     return false;
   }
-}
-
-async function verifyAdmin(request: NextRequest): Promise<boolean> {
-  const auth = request.headers.get("authorization");
-  if (!auth) return false;
-  const hashRaw = env("ADMIN_PASSWORD_HASH");
-  if (!hashRaw) return false;
-  const hash = Buffer.from(hashRaw, "base64").toString("utf-8");
-  const pw = auth.replace(/^Bearer\s+/i, "");
-  return bcrypt.compare(pw, hash);
 }
 
 function isSupabaseConfigured(): boolean {
@@ -107,6 +98,10 @@ export async function POST(
     );
   }
 
+  if (!validOrigin(request.headers.get("origin"))) {
+    return addCorsStrict(NextResponse.json({ error: "Ungültiger Origin" }, { status: 403 }), request);
+  }
+
   const isAdmin = await verifyAdmin(request);
   const token = request.nextUrl.searchParams.get("token");
   const isCustomer = !isAdmin && await verifyCustomer(uid, token);
@@ -167,6 +162,30 @@ export async function POST(
       NextResponse.json({ error: error.message }, { status: 500 }),
       request
     );
+  }
+
+  if (sender === "customer") {
+    const adminEmail = env("ADMIN_EMAIL");
+    if (adminEmail) {
+      (async () => {
+        try {
+          const booking = await getBookingByUid(uid);
+          const att = booking?.data?.attendees?.[0];
+          const meta = booking?.data?.metadata || {};
+          const customerName = sanitize(att?.name || "Kunde");
+          const service = sanitize(meta.service || "");
+          const start = booking?.data?.start || "";
+          sendAdminNewMessageNotification({
+            adminEmail,
+            customerName,
+            bookingUid: uid,
+            service,
+            start,
+            text: text || "📷 Bild",
+          }).catch(() => {});
+        } catch {}
+      })();
+    }
   }
 
   return addCorsStrict(NextResponse.json({ data }), request);

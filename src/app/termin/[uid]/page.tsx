@@ -5,12 +5,7 @@ import { useParams, useSearchParams } from "next/navigation";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
 import Image from "next/image";
-import { generateReactHelpers } from "@uploadthing/react";
-import type { OurFileRouter } from "@/app/api/uploadthing/core";
-
-const { uploadFiles } = generateReactHelpers<OurFileRouter>({
-  url: "/api/uploadthing",
-});
+import { xhrUpload } from "@/lib/xhr-upload";
 
 interface Message {
   id: number;
@@ -35,7 +30,6 @@ function TerminDetailContent() {
   const { uid } = useParams<{ uid: string }>();
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
-  const legacy = searchParams.get("legacy") === "1";
 
   const [booking, setBooking] = useState<BookingData | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -44,9 +38,11 @@ function TerminDetailContent() {
   const [inputText, setInputText] = useState("");
   const [sending, setSending] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [stagedImages, setStagedImages] = useState<string[]>([]);
+  const stagedFilesRef = useRef<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const chatEnd = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (!uid) {
@@ -56,14 +52,12 @@ function TerminDetailContent() {
     }
     // Token aus sessionStorage falls nicht in URL (z.B. nach Refresh)
     const tkn = token || sessionStorage.getItem(`termin_token_${uid}`) || "";
-    if (!tkn && !legacy) {
+    if (!tkn) {
       setError("Fehlender Zugriffstoken");
       setLoading(false);
       return;
     }
-    const params = tkn
-      ? `token=${encodeURIComponent(tkn)}`
-      : "legacy=1";
+    const params = `token=${encodeURIComponent(tkn)}`;
     fetch(`/api/bookings/${uid}?${params}`)
       .then(async (r) => {
         const data = await r.json();
@@ -79,79 +73,86 @@ function TerminDetailContent() {
         if (token && window.location.search.includes("token=")) {
           window.history.replaceState({}, "", `/termin/${uid}`);
         }
+        // Nachrichten sofort nach erfolgreichem Laden der Buchung laden
+        fetch(`/api/bookings/${uid}/messages?token=${encodeURIComponent(tkn)}`)
+          .then(async (r2) => { const d = await r2.json(); if (d?.data) setMessages(d.data); })
+          .catch(() => {});
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
-  }, [uid, token, legacy]);
+  }, [uid, token]);
 
   function activeToken(): string {
     return token || sessionStorage.getItem(`termin_token_${uid}`) || "";
   }
 
-  function loadMessages() {
-    const t = activeToken();
-    if (!uid || !t) return;
-    fetch(`/api/bookings/${uid}/messages?token=${encodeURIComponent(t)}`)
-      .then(async (r) => {
-        const data = await r.json();
-        if (data?.data) setMessages(data.data);
-      })
-      .catch(() => {});
-  }
-
+  // Polling für neue Nachrichten
   useEffect(() => {
-    if (!booking || !token) return;
-    loadMessages();
-    const interval = setInterval(loadMessages, 5000);
-    return () => clearInterval(interval);
-  }, [booking, token, uid]);
-
-  async function sendMessage(text?: string) {
     const t = activeToken();
-    const msg = text ?? inputText.trim();
-    if (!msg || !t) return;
+    if (!booking || !t) return;
+    const iv = setInterval(() => {
+      const tk = activeToken();
+      if (!tk) return;
+      fetch(`/api/bookings/${uid}/messages?token=${encodeURIComponent(tk)}`)
+        .then(async (r) => { const d = await r.json(); if (d?.data) setMessages(d.data); })
+        .catch(() => {});
+    }, 5000);
+    return () => clearInterval(iv);
+  }, [booking, uid]);
+
+  async function sendMessage() {
+    const t = activeToken();
+    const msg = inputText.trim();
+    if (!msg && stagedFilesRef.current.length === 0) return;
+    if (!t) return;
     setSending(true);
     try {
+      let imageUrls: string[] = [];
+      if (stagedFilesRef.current.length > 0) {
+        setUploading(true);
+        const res = await xhrUpload("damageImage", stagedFilesRef.current);
+        imageUrls = res.map((f) => f.ufsUrl ?? f.url).filter(Boolean);
+        setUploading(false);
+      }
+      const body: Record<string, any> = {};
+      if (msg) body.text = msg;
+      if (imageUrls.length > 0) body.imageUrls = imageUrls;
       const res = await fetch(`/api/bookings/${uid}/messages?token=${encodeURIComponent(t)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: msg }),
+        body: JSON.stringify(body),
       });
       if (res.ok) {
         setInputText("");
+        stagedFilesRef.current = [];
+        setStagedImages([]);
         inputRef.current?.blur();
-        loadMessages();
+        fetch(`/api/bookings/${uid}/messages?token=${encodeURIComponent(t)}`)
+          .then(async (r) => { const d = await r.json(); if (d?.data) setMessages(d.data); })
+          .catch(() => {});
       }
+    } catch (err) {
+      console.error("Send error:", err);
+      const msg = err instanceof Error ? `${err.name}: ${err.message}` : JSON.stringify(err);
+      alert(`Fehler beim Senden: ${msg}`);
     } finally {
       setSending(false);
     }
   }
 
-  async function handleImageUpload(files: FileList | null) {
-    const t = activeToken();
-    if (!files || files.length === 0 || !t) return;
-    setUploading(true);
-    try {
-      const res = await uploadFiles("damageImage", {
-        files: Array.from(files),
-      });
-      const urls = res.map((f) => f.ufsUrl ?? f.url).filter(Boolean);
-      if (urls.length > 0) {
-        await fetch(`/api/bookings/${uid}/messages?token=${encodeURIComponent(t)}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ imageUrls: urls }),
-        });
-        loadMessages();
-      }
-    } catch (err) {
-      console.error("Upload error:", err);
-      const msg = err instanceof Error ? `${err.name}: ${err.message}` : JSON.stringify(err);
-      alert(`Upload fehlgeschlagen: ${msg}`);
-    } finally {
-      setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
+  function handleImageSelect(files: FileList | null) {
+    if (!files || files.length === 0) return;
+    const neue = Array.from(files);
+    stagedFilesRef.current = [...stagedFilesRef.current, ...neue];
+    setStagedImages(stagedFilesRef.current.map((f) => URL.createObjectURL(f)));
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
+  function removeStagedImage(index: number) {
+    const url = stagedImages[index];
+    if (url) URL.revokeObjectURL(url);
+    stagedFilesRef.current = stagedFilesRef.current.filter((_, i) => i !== index);
+    setStagedImages(stagedFilesRef.current.map((f) => URL.createObjectURL(f)));
   }
 
   if (loading) {
@@ -344,6 +345,26 @@ function TerminDetailContent() {
               </div>
 
               <div className="px-5 py-3 border-t border-gray-100 space-y-2">
+                {stagedImages.length > 0 && (
+                  <div className="flex flex-wrap gap-2 pb-1">
+                    {stagedImages.map((url, i) => (
+                      <div key={i} className="relative group">
+                        <img
+                          src={url}
+                          alt={`Bild ${i + 1}`}
+                          className="w-16 h-16 rounded-lg object-cover border border-gray-200"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeStagedImage(i)}
+                          className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <form
                   onSubmit={(e) => {
                     e.preventDefault();
@@ -351,21 +372,27 @@ function TerminDetailContent() {
                   }}
                   className="flex gap-2"
                 >
-                  <input
+                  <textarea
                     ref={inputRef}
-                    type="text"
                     value={inputText}
                     onChange={(e) => setInputText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        sendMessage();
+                      }
+                    }}
                     placeholder="Nachricht eingeben..."
                     disabled={sending}
-                    className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none disabled:opacity-50"
+                    rows={1}
+                    className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none disabled:opacity-50 resize-none"
                   />
                   <button
                     type="submit"
-                    disabled={!inputText.trim() || sending}
+                    disabled={(!inputText.trim() && stagedImages.length === 0) || sending || uploading}
                     className="px-4 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-lg disabled:opacity-40 hover:bg-blue-700 transition-colors"
                   >
-                    {sending ? "..." : "Senden"}
+                    {uploading ? "Upload..." : sending ? "..." : "Senden"}
                   </button>
                 </form>
                 <div className="flex items-center gap-2">
@@ -375,14 +402,14 @@ function TerminDetailContent() {
                     disabled={uploading}
                     className="text-sm text-blue-600 hover:text-blue-700 font-medium disabled:opacity-40"
                   >
-                    {uploading ? "Upload läuft..." : "+ Bilder hochladen"}
+                    + Bilder
                   </button>
                   <input
                     ref={fileInputRef}
                     type="file"
                     accept="image/*"
                     multiple
-                    onChange={(e) => handleImageUpload(e.target.files)}
+                    onChange={(e) => handleImageSelect(e.target.files)}
                     className="hidden"
                   />
                 </div>

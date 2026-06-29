@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import bcrypt from "bcryptjs";
 import { getAllBookings } from "@/lib/cal";
 import { addCorsStrict, corsResponse } from "@/lib/cors";
 import { rateLimitIP } from "@/lib/rate-limit";
-import { env } from "@/lib/env";
+import { verifyAdmin } from "@/lib/admin-auth";
 
 export async function OPTIONS(request: NextRequest) {
   return corsResponse(request.headers.get("origin") || "");
@@ -17,20 +16,7 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const auth = request.headers.get("authorization");
-  const hashRaw = env("ADMIN_PASSWORD_HASH");
-  const hash = hashRaw ? Buffer.from(hashRaw, "base64").toString("utf-8") : "";
-
-  if (!auth || !hash) {
-    return addCorsStrict(
-      NextResponse.json({ error: "Unauthorized" }, { status: 401 }),
-      request
-    );
-  }
-
-  const token = auth.replace(/^Bearer\s+/i, "");
-  const valid = await bcrypt.compare(token, hash);
-  if (!valid) {
+  if (!(await verifyAdmin(request))) {
     return addCorsStrict(
       NextResponse.json({ error: "Unauthorized" }, { status: 401 }),
       request

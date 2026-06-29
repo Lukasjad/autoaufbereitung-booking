@@ -43,13 +43,18 @@ export async function createBooking(data: {
   location?: string;
   metadata?: Record<string, string>;
   bookingFieldsResponses?: Record<string, string>;
+  idempotencyKey?: string;
 }) {
   if (!env("CAL_API_KEY") || !env("CAL_EVENT_TYPE_ID")) {
     throw new Error("Cal.com API nicht konfiguriert");
   }
+  const headers = getHeaders("2026-02-25") as Record<string, string>;
+  if (data.idempotencyKey) {
+    headers["Idempotency-Key"] = data.idempotencyKey;
+  }
   const res = await fetch(`${CAL_API}/bookings`, {
     method: "POST",
-    headers: getHeaders("2026-02-25"),
+    headers,
     body: JSON.stringify({
       eventTypeId: Number(env("CAL_EVENT_TYPE_ID")),
       start: data.start,
@@ -79,9 +84,52 @@ export async function getBookingByUid(uid: string) {
   return json;
 }
 
+// Anmerkung: Cal.com v2 API hat keinen generischen PATCH-Endpunkt für Bookings.
+// Title/Description lassen sich nicht per API setzen.
+// Status-Änderungen (bestätigen/ablehnen) gehen über POST /confirm, /decline.
+// Location-Update funktioniert über den speziellen /location-Endpoint.
+
+export async function confirmBooking(uid: string) {
+  const res = await fetch(`${CAL_API}/bookings/${uid}/confirm`, {
+    method: "POST",
+    headers: getHeaders("2026-02-25"),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Cal.com confirm error ${res.status}: ${text}`);
+  }
+  return res.json();
+}
+
+export async function declineBooking(uid: string, reason?: string) {
+  const res = await fetch(`${CAL_API}/bookings/${uid}/decline`, {
+    method: "POST",
+    headers: getHeaders("2026-02-25"),
+    body: reason ? JSON.stringify({ reason }) : undefined,
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Cal.com decline error ${res.status}: ${text}`);
+  }
+  return res.json();
+}
+
+export async function updateBookingLocation(uid: string, url: string) {
+  const res = await fetch(`${CAL_API}/bookings/${uid}/location`, {
+    method: "PATCH",
+    headers: getHeaders("2024-08-13"),
+    body: JSON.stringify({ location: { type: "link", link: url } }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Cal.com location update error ${res.status}: ${text}`);
+  }
+  return res.json();
+}
+
 export async function getAllBookings() {
   const res = await fetch(
-    `${CAL_API}/bookings?eventTypeId=${env("CAL_EVENT_TYPE_ID")}&status=upcoming,past`,
+    `${CAL_API}/bookings?eventTypeId=${env("CAL_EVENT_TYPE_ID")}&status=upcoming,past,unconfirmed`,
     { headers: getHeaders("2026-02-25") }
   );
   if (!res.ok) {

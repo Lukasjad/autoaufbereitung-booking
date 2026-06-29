@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createBooking } from "@/lib/cal";
+import { createBooking, updateBookingLocation } from "@/lib/cal";
 import { generateLinkId } from "@/lib/id";
-import { sanitize, validEmail, validPhone, validKennzeichen } from "@/lib/validate";
+import { sanitize, validEmail, validPhone, validKennzeichen, validOrigin } from "@/lib/validate";
 import { addCors, corsResponse, getOrigin } from "@/lib/cors";
 import { rateLimitIP } from "@/lib/rate-limit";
-import { sendBookingConfirmation } from "@/lib/email";
+import { sendBookingPending } from "@/lib/email";
 
 function getFirstImage(bilderStr: string): string {
   return bilderStr.split(",").map((u) => u.trim()).filter(Boolean)[0] || "";
@@ -22,6 +22,10 @@ export async function POST(request: NextRequest) {
       NextResponse.json({ error: "Zu viele Anfragen. Bitte warte 60s." }, { status: 429 }),
       origin
     );
+  }
+
+  if (!validOrigin(request.headers.get("origin"))) {
+    return addCors(NextResponse.json({ error: "Ungültiger Origin" }, { status: 403 }), origin);
   }
 
   try {
@@ -126,11 +130,15 @@ export async function POST(request: NextRequest) {
         ...(phoneNumber ? { phoneNumber } : {}),
       },
       location: shortLink,
+      idempotencyKey: `booking-${start}-${email}-${buchungLinkId}`,
       bookingFieldsResponses: {
         fahrzeugmarke,
         fahrzeugmodell,
         kennzeichen,
         schadensbilder: getFirstImage(bilder),
+        service,
+        schadensbeschreibung,
+        notizen,
       },
       metadata: {
         service,
@@ -150,19 +158,26 @@ export async function POST(request: NextRequest) {
 
     const bookingUid = result?.data?.uid;
     const terminLink = bookingUid ? `${proto}://${host}/termin/${bookingUid}?token=${accessToken}` : "";
+    const entryLink = bookingUid ? `${proto}://${host}/admin/${bookingUid}` : "";
+
+    // Location per speziellem Endpunkt setzen (Title/Description/Status nicht per API setzbar)
+    if (bookingUid) {
+      updateBookingLocation(bookingUid, entryLink).catch((err) =>
+        console.error("Cal.com location update error:", err)
+      );
+    }
 
     if (bookingUid) {
       try {
-        await sendBookingConfirmation({
+        await sendBookingPending({
           to: email,
           name,
           service,
           start,
           terminLink,
-          shortLink,
         });
       } catch {
-        console.log("Email not sent (Resend not configured). Booking link:", terminLink);
+        console.log("Email not sent (SendGrid not configured). Booking link:", terminLink);
       }
     }
 

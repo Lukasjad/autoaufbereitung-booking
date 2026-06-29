@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { redirect } from "next/navigation";
 import { getAllBookings, getBookingByUid } from "@/lib/cal";
 
 export default async function ShortLinkPage({
@@ -42,38 +42,6 @@ export default async function ShortLinkPage({
     );
   }
 
-  return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-lg border border-gray-100 p-8 text-center">
-        <h1 className="text-xl font-bold text-gray-900 mb-2">
-          Buchung gefunden
-        </h1>
-        <p className="text-sm text-gray-500 mb-6">
-          Wähle, wie du fortfahren möchtest:
-        </p>
-
-        <div className="space-y-3">
-          <Link
-            href={`/termin/${uid}?token=${encodeURIComponent(accessToken)}`}
-            className="block w-full py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Kundenansicht (Chat & Bilder)
-          </Link>
-
-          <Link
-            href={`/admin/${uid}`}
-            className="block w-full py-3 bg-gray-100 text-gray-800 font-semibold rounded-lg hover:bg-gray-200 transition-colors"
-          >
-            Adminbereich
-          </Link>
-        </div>
-
-        {uid && (
-          <p className="text-xs text-gray-400 mt-6">
-            Buchung: {uid.slice(0, 8)}
-          </p>
-        )}
-      </div>
-    </div>
-  );
+  const paramsStr = accessToken ? `?token=${encodeURIComponent(accessToken)}` : "";
+  redirect(`/termin/${uid}${paramsStr}`);
 }

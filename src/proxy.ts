@@ -14,7 +14,7 @@ const CSP = [
   "object-src 'none'",
 ].join("; ");
 
-export function proxy(request: NextRequest) {
+export function middleware(request: NextRequest) {
   const response = NextResponse.next();
 
   response.headers.set("X-Content-Type-Options", "nosniff");
