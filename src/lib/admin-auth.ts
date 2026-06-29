@@ -7,7 +7,7 @@ const MAX_ATTEMPTS = 3;
 const WINDOW_MS = 5 * 60_000;
 const SESSION_TTL = 24 * 60 * 60; // 24h in Sekunden
 
-const attempts = new Map<string, { count: number; lockedUntil: number }>();
+const attempts = new Map<string, { count: number; windowStart: number; lockedUntil: number }>();
 
 function getSecret(): Buffer {
   const key = env("ENV_MASTER_KEY");
@@ -25,7 +25,7 @@ function ipFromRequest(request: NextRequest): string {
 function cleanExpired() {
   const now = Date.now();
   for (const [key, val] of attempts) {
-    if (now > val.lockedUntil) attempts.delete(key);
+    if (now > val.windowStart + WINDOW_MS) attempts.delete(key);
   }
 }
 
@@ -87,8 +87,8 @@ export async function verifyAdmin(request: NextRequest): Promise<boolean> {
     return true;
   }
 
-  if (!entry || now > entry.lockedUntil) {
-    attempts.set(ip, { count: 1, lockedUntil: now + WINDOW_MS });
+  if (!entry || now > entry.windowStart + WINDOW_MS) {
+    attempts.set(ip, { count: 1, windowStart: now, lockedUntil: 0 });
   } else {
     entry.count++;
     if (entry.count >= MAX_ATTEMPTS) {

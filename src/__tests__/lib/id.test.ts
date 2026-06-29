@@ -2,9 +2,9 @@ import { describe, it, expect } from "vitest";
 import { generateLinkId } from "@/lib/id";
 
 describe("generateLinkId", () => {
-  it("returns an 8-character string", () => {
+  it("returns a 16-character string", () => {
     const id = generateLinkId();
-    expect(id).toHaveLength(8);
+    expect(id).toHaveLength(16);
   });
 
   it("returns hex characters only", () => {

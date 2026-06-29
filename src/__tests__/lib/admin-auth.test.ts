@@ -125,12 +125,16 @@ describe("verifyAdmin brute-force lockout", () => {
     vi.useRealTimers();
   });
 
-  it("locks out after 1 failed attempt (code sets lockedUntil immediately)", async () => {
+  it("allows up to MAX_ATTEMPTS failures then locks out even valid tokens", async () => {
     const IP = "10.0.0.1";
-    const req = () => makeRequest("Bearer wrong-password", IP);
+    const req = (pw: string) => makeRequest(`Bearer ${pw}`, IP);
 
-    expect(await verifyAdmin(req())).toBe(false);
-    expect(await verifyAdmin(req())).toBe(false);
+    expect(await verifyAdmin(req("wrong-1"))).toBe(false);
+    expect(await verifyAdmin(req("wrong-2"))).toBe(false);
+    expect(await verifyAdmin(req("wrong-3"))).toBe(false);
+
+    const validToken = createAdminSession();
+    expect(await verifyAdmin(req(validToken))).toBe(false);
   });
 
   it("allows different IPs independently", async () => {
