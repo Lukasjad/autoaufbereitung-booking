@@ -130,6 +130,9 @@ function TerminDetailContent() {
         fetch(`/api/bookings/${uid}/messages?token=${encodeURIComponent(t)}`)
           .then(async (r) => { const d = await r.json(); if (d?.data) setMessages(d.data); })
           .catch(() => {});
+      } else {
+        const errBody = await res.json().catch(() => ({ error: res.statusText }));
+        throw new Error(errBody.error || `Serverfehler (${res.status})`);
       }
     } catch (err) {
       console.error("Send error:", err);
@@ -137,6 +140,7 @@ function TerminDetailContent() {
       alert(`Fehler beim Senden: ${msg}`);
     } finally {
       setSending(false);
+      setUploading(false);
     }
   }
 
