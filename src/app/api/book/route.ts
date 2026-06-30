@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createBooking, updateBookingLocation } from "@/lib/cal";
+import { createBooking, getAllBookings, updateBookingLocation } from "@/lib/cal";
 import { generateLinkId } from "@/lib/id";
 import { sanitize, validEmail, validPhone, validKennzeichen, validOrigin } from "@/lib/validate";
 import { addCors, corsResponse, getOrigin } from "@/lib/cors";
@@ -112,6 +112,22 @@ export async function POST(request: NextRequest) {
         NextResponse.json({ error: "Ungültiges Kennzeichen-Format (z.B. AB-CD 123)" }, { status: 400 }),
         origin
       );
+    }
+
+    // Prüfen, ob der Termin bereits belegt ist (pending + accepted)
+    try {
+      const existing = await getAllBookings();
+      const booked = existing?.data?.some(
+        (b: any) => b.start === start && b.status !== "cancelled" && b.status !== "rejected"
+      );
+      if (booked) {
+        return addCors(
+          NextResponse.json({ error: "Dieser Termin ist bereits gebucht" }, { status: 409 }),
+          origin
+        );
+      }
+    } catch {
+      // Fallback: kein Fehler, wenn Prüfung fehlschlägt
     }
 
     const buchungLinkId = generateLinkId();
