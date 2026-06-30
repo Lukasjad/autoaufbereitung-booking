@@ -7,5 +7,6 @@ This version has breaking changes — APIs, conventions, and file structure may 
 <!-- BEGIN:todo -->
 # TODOs
 
-- **SendGrid einrichten**: API-Key erstellen, `lui.jad@gmx.de` als Single Sender verifizieren, `SENDGRID_API_KEY` in Vercel setzen, dann deployen und testen.
+- **~~SendGrid einrichten~~** ✅ API-Key + `lui.jad@gmx.de` als Single Sender verifiziert, `SENDGRID_API_KEY` + `ADMIN_EMAIL` in Vercel gesetzt.
+- **Cal.com Emails deaktivieren**: Im Cal.com-Dashboard → Event Types → "Autoaufbereitung" → Email Notifications → alle Haken raus. Sonst bekommt der Kunde zusätzlich Cal.com-Mails mit dem Admin-Link.
 <!-- END:todo -->
