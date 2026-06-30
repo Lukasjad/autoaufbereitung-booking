@@ -5,7 +5,7 @@ import { addCorsStrict, corsResponse } from "@/lib/cors";
 import { rateLimitIP } from "@/lib/rate-limit";
 import { env } from "@/lib/env";
 import { getSupabase } from "@/lib/supabase";
-import { sendAdminNewMessageNotification } from "@/lib/email";
+import { sendAdminNewMessageNotification, sendCustomerReplyNotification } from "@/lib/email";
 import { verifyAdmin } from "@/lib/admin-auth";
 
 async function verifyCustomer(uid: string, token: string | null): Promise<boolean> {
@@ -165,31 +165,48 @@ export async function POST(
     );
   }
 
-  if (sender === "customer") {
-    const adminEmail = env("ADMIN_EMAIL");
-    if (adminEmail) {
-      (async () => {
-        try {
-          const booking = await getBookingByUid(uid);
-          const att = booking?.data?.attendees?.[0];
-          const meta = booking?.data?.metadata || {};
-          const customerName = sanitize(att?.name || "Kunde");
-          const service = sanitize(meta.service || "");
-          const start = booking?.data?.start || "";
-          const accessToken = meta.access_token || meta.accessToken || "";
+  // Benachrichtigungen asynchron versenden (nicht blockierend)
+  (async () => {
+    try {
+      const booking = await getBookingByUid(uid);
+      const att = booking?.data?.attendees?.[0];
+      const meta = booking?.data?.metadata || {};
+      const customerName = sanitize(att?.name || "Kunde");
+      const customerEmail = att?.email || "";
+      const service = sanitize(meta.service || "");
+      const bookingStart = booking?.data?.start || "";
+      const accessToken = meta.access_token || meta.accessToken || "";
+      const msgText = text || "📷 Bild";
+      const proto = "https";
+      const host = "autoaufbereitung-booking.vercel.app";
+
+      if (sender === "customer") {
+        const adminEmail = env("ADMIN_EMAIL");
+        if (adminEmail) {
           sendAdminNewMessageNotification({
             adminEmail,
             customerName,
             bookingUid: uid,
             service,
-            start,
-            text: text || "📷 Bild",
+            start: bookingStart,
+            text: msgText,
             accessToken,
           }).catch(() => {});
-        } catch {}
-      })();
-    }
-  }
+        }
+      } else if (sender === "admin" && customerEmail) {
+        const terminLink = `${proto}://${host}/termin/${uid}?token=${encodeURIComponent(accessToken)}`;
+        sendCustomerReplyNotification({
+          to: customerEmail,
+          customerName,
+          bookingUid: uid,
+          service,
+          start: bookingStart,
+          text: msgText,
+          terminLink,
+        }).catch(() => {});
+      }
+    } catch {}
+  })();
 
   return addCorsStrict(NextResponse.json({ data }), request);
 }

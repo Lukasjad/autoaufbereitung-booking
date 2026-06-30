@@ -98,9 +98,6 @@ describe("POST /api/book", () => {
     const updateCall = mockUpdateBookingLocation.mock.calls[0];
     expect(updateCall[0]).toBe("cal-booking-uid");
     expect(updateCall[1]).toBe("http://localhost:3000/portal/cal-booking-uid?token=access-token");
-
-    expect(mockSendBookingPending).toHaveBeenCalledTimes(1);
-    expect(mockSendBookingPending.mock.calls[0][0].to).toBe("max@test.de");
   });
 
   it("rejects missing start", async () => {

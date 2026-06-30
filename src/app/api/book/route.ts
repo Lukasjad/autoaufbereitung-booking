@@ -4,7 +4,6 @@ import { generateLinkId } from "@/lib/id";
 import { sanitize, validEmail, validPhone, validKennzeichen, validOrigin } from "@/lib/validate";
 import { addCors, corsResponse, getOrigin } from "@/lib/cors";
 import { rateLimitIP } from "@/lib/rate-limit";
-import { sendBookingPending } from "@/lib/email";
 
 function getFirstImage(bilderStr: string): string {
   return bilderStr.split(",").map((u) => u.trim()).filter(Boolean)[0] || "";
@@ -183,20 +182,6 @@ export async function POST(request: NextRequest) {
       updateBookingLocation(bookingUid, selectionLink).catch((err) =>
         console.error("Cal.com location update error:", err)
       );
-    }
-
-    if (bookingUid) {
-      try {
-        await sendBookingPending({
-          to: email,
-          name,
-          service,
-          start,
-          terminLink,
-        });
-      } catch {
-        console.log("Email not sent (SendGrid not configured). Booking link:", terminLink);
-      }
     }
 
     return addCors(

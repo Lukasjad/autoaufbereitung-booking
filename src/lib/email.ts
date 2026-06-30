@@ -397,3 +397,79 @@ Kundenansicht öffnen ↗
     html,
   });
 }
+
+export async function sendCustomerReplyNotification({
+  to,
+  customerName,
+  bookingUid,
+  service,
+  text,
+  start,
+  terminLink,
+}: {
+  to: string;
+  customerName: string;
+  bookingUid: string;
+  service: string;
+  text: string;
+  start?: string;
+  terminLink?: string;
+}) {
+  const datum = start
+    ? new Date(start).toLocaleDateString("de-DE", {
+        weekday: "long",
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+      })
+    : "";
+  const uhrzeit = start
+    ? new Date(start).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })
+    : "";
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f5;margin:0;padding:0">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:40px 20px">
+<tr><td align="center">
+<table width="560" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.08)">
+<tr><td style="background:#059669;padding:32px 40px;text-align:center">
+<h1 style="color:#fff;margin:0;font-size:24px">Neue Nachricht von Elbe Smart Repair</h1>
+</td></tr>
+<tr><td style="padding:32px 40px">
+<p style="font-size:16px;color:#333;margin:0 0 8px">Hallo ${customerName},</p>
+<p style="font-size:15px;color:#555;margin:0 0 20px;line-height:1.5">wir haben dir eine Nachricht zu deiner Buchung geschrieben.</p>
+
+${datum ? `<p style="font-size:14px;color:#666;margin:0 0 2px">${datum} um ${uhrzeit}</p>` : ""}
+<p style="font-size:13px;color:#999;margin:0 0 16px">${service} · ID: ${bookingUid}</p>
+
+<div style="background:#f3f4f6;border-radius:12px;padding:16px 20px;margin-bottom:24px">
+<p style="font-size:15px;color:#333;margin:0;white-space:pre-wrap">${text}</p>
+</div>
+
+${terminLink ? `
+<a href="${terminLink}" style="display:block;background:#059669;color:#fff;text-decoration:none;padding:14px 24px;border-radius:10px;font-size:16px;font-weight:600;text-align:center;margin-bottom:20px">
+Zur Buchung →</a>` : ""}
+
+<hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0">
+
+<p style="font-size:12px;color:#999;margin:0">
+Falls der Button nicht funktioniert: <br>
+<a href="${terminLink}" style="color:#059669">${terminLink}</a></p>
+
+</td></tr></table>
+<p style="font-size:12px;color:#999;margin-top:16px">Autoaufbereitung</p>
+</td></tr></table>
+</body>
+</html>`;
+
+  ensureInit();
+  await sgMail.send({
+    to,
+    from: SENDGRID_FROM,
+    subject: `Neue Nachricht zu deiner Buchung`,
+    html,
+  });
+}
