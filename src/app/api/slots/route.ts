@@ -35,15 +35,20 @@ export async function GET(request: NextRequest) {
     const raw = slotsData?.data?.[date] ?? slotsData?.slots?.[date] ?? [];
     const rawList: { start: string; time?: string }[] = Array.isArray(raw) ? raw : [];
 
-    const bookedStarts = new Set<string>();
+    function toMinuteKey(iso: string): string {
+      const d = new Date(iso);
+      return `${d.getUTCFullYear()}-${d.getUTCMonth()}-${d.getUTCDate()}-${d.getUTCHours()}-${d.getUTCMinutes()}`;
+    }
+
+    const bookedMinutes = new Set<string>();
     for (const b of bookingsData?.data ?? []) {
-      if (b.start) bookedStarts.add(b.start);
+      if (b.start) bookedMinutes.add(toMinuteKey(b.start));
     }
 
     const free: { start: string; time?: string }[] = [];
     const booked: { start: string; time?: string }[] = [];
     for (const s of rawList) {
-      if (bookedStarts.has(s.start)) {
+      if (bookedMinutes.has(toMinuteKey(s.start))) {
         booked.push(s);
       } else {
         free.push(s);
