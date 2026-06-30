@@ -368,7 +368,7 @@ ${datum ? `<p style="font-size:14px;color:#555;margin:0 0 2px">${datum} um ${uhr
 <p style="font-size:15px;color:#333;margin:0;white-space:pre-wrap">${text}</p>
 </div>
 
-<a href="https://autoaufbereitung-booking.vercel.app/admin/${bookingUid}${accessToken ? `?token=${encodeURIComponent(accessToken)}` : ""}" style="display:block;background:#2563eb;color:#fff;text-decoration:none;padding:14px 24px;border-radius:10px;font-size:16px;font-weight:600;text-align:center;margin-bottom:20px">
+<a href="https://autoaufbereitung-booking.vercel.app/portal/${bookingUid}${accessToken ? `?token=${encodeURIComponent(accessToken)}` : ""}" style="display:block;background:#2563eb;color:#fff;text-decoration:none;padding:14px 24px;border-radius:10px;font-size:16px;font-weight:600;text-align:center;margin-bottom:20px">
 Zur Buchung →</a>
 
 ${accessToken ? `
@@ -381,7 +381,7 @@ Kundenansicht öffnen ↗
 <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0">
 
 <p style="font-size:12px;color:#999;margin:0">
-<a href="https://autoaufbereitung-booking.vercel.app/admin/${bookingUid}${accessToken ? `?token=${encodeURIComponent(accessToken)}` : ""}" style="color:#2563eb">${bookingUid}</a></p>
+<a href="https://autoaufbereitung-booking.vercel.app/portal/${bookingUid}${accessToken ? `?token=${encodeURIComponent(accessToken)}` : ""}" style="color:#2563eb">${bookingUid}</a></p>
 
 </td></tr></table>
 <p style="font-size:12px;color:#999;margin-top:16px">Autoaufbereitung</p>

@@ -58,6 +58,7 @@ describe("POST /api/book", () => {
     mockCreateBooking.mockResolvedValue({ data: { uid: "cal-booking-uid" } });
     mockUpdateBookingLocation.mockResolvedValue({});
     mockSendBookingPending.mockResolvedValue(undefined);
+    vi.spyOn(crypto, "randomUUID").mockReturnValue("access-token");
   });
 
   const validBody = {
@@ -96,7 +97,7 @@ describe("POST /api/book", () => {
     expect(mockUpdateBookingLocation).toHaveBeenCalledTimes(1);
     const updateCall = mockUpdateBookingLocation.mock.calls[0];
     expect(updateCall[0]).toBe("cal-booking-uid");
-    expect(updateCall[1]).toBe("http://localhost:3000/admin/cal-booking-uid");
+    expect(updateCall[1]).toBe("http://localhost:3000/portal/cal-booking-uid?token=access-token");
 
     expect(mockSendBookingPending).toHaveBeenCalledTimes(1);
     expect(mockSendBookingPending.mock.calls[0][0].to).toBe("max@test.de");
