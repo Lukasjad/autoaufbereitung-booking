@@ -158,11 +158,11 @@ export async function POST(request: NextRequest) {
 
     const bookingUid = result?.data?.uid;
     const terminLink = bookingUid ? `${proto}://${host}/termin/${bookingUid}?token=${accessToken}` : "";
-    const entryLink = bookingUid ? `${proto}://${host}/admin/${bookingUid}` : "";
 
-    // Location per speziellem Endpunkt setzen (Title/Description/Status nicht per API setzbar)
+    // Location in Cal.com auf den Kunden-Link setzen,
+    // da Cal.coms eigene Emails das location-Feld als "beitreten"-Link verwenden
     if (bookingUid) {
-      updateBookingLocation(bookingUid, entryLink).catch((err) =>
+      updateBookingLocation(bookingUid, terminLink).catch((err) =>
         console.error("Cal.com location update error:", err)
       );
     }
