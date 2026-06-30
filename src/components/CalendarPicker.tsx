@@ -16,7 +16,7 @@ export default function CalendarPicker({ onSelect, selected }: CalendarPickerPro
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(
     selected ? new Date(selected) : undefined
   );
-  const [slots, setSlots] = useState<Record<string, { time: string }[]>>({});
+  const [slots, setSlots] = useState<Record<string, { time: string; booked?: boolean }[]>>({});
   const [loading, setLoading] = useState(false);
   const [selectedTime, setSelectedTime] = useState<string>("");
   const [error, setError] = useState("");
@@ -32,12 +32,24 @@ export default function CalendarPicker({ onSelect, selected }: CalendarPickerPro
     fetch(`/api/slots?date=${dateStr}&timeZone=Europe/Berlin`)
       .then((r) => r.json())
       .then((data) => {
-        const slotsMap: Record<string, { time: string }[]> = {};
+        const slotsMap: Record<string, { time: string; booked?: boolean }[]> = {};
         const raw = data?.data?.[dateStr] ?? data?.slots?.[dateStr] ?? [];
         if (Array.isArray(raw)) {
           slotsMap[dateStr] = raw.map((s: { start: string; time?: string }) => ({
             time: s.start || s.time || "",
           }));
+        }
+        const bookedKey = `${dateStr}_booked`;
+        const rawBooked = data?.data?.[bookedKey] ?? data?.slots?.[bookedKey] ?? [];
+        if (Array.isArray(rawBooked) && rawBooked.length > 0) {
+          const existing = slotsMap[dateStr] || [];
+          slotsMap[dateStr] = [
+            ...existing,
+            ...rawBooked.map((s: { start: string; time?: string }) => ({
+              time: s.start || s.time || "",
+              booked: true,
+            })),
+          ];
         }
         setSlots(slotsMap);
       })
@@ -90,16 +102,21 @@ export default function CalendarPicker({ onSelect, selected }: CalendarPickerPro
               {daySlots.map((slot) => {
                 const timeStr = format(new Date(slot.time), "HH:mm");
                 const isActive = selectedTime === slot.time;
+                const isBooked = slot.booked;
                 return (
                   <button
                     key={slot.time}
                     type="button"
-                    onClick={() => setSelectedTime(slot.time)}
+                    disabled={isBooked}
+                    onClick={() => !isBooked && setSelectedTime(slot.time)}
                     className={`py-2 px-3 rounded-lg text-sm font-medium border transition-colors ${
-                      isActive
+                      isBooked
+                        ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed line-through"
+                        : isActive
                         ? "bg-blue-600 text-white border-blue-600"
                         : "bg-white text-gray-700 border-gray-200 hover:border-blue-400"
                     }`}
+                    title={isBooked ? "Bereits gebucht" : timeStr}
                   >
                     {timeStr}
                   </button>

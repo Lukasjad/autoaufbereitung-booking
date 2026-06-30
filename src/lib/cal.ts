@@ -146,17 +146,11 @@ export async function getAllBookings() {
 export async function getBookingsForDate(date: string) {
   const start = `${date}T00:00:00Z`;
   const end = `${date}T23:59:59Z`;
-  const res = await fetch(
-    `${CAL_API}/bookings?eventTypeId=${env("CAL_EVENT_TYPE_ID")}&status=upcoming,unconfirmed`,
-    { headers: getHeaders("2026-02-25") }
-  );
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Cal.com bookings by date error ${res.status}: ${text}`);
-  }
-  const json = await res.json();
-  if (Array.isArray(json?.data)) {
-    json.data.forEach(normalizeBooking);
-  }
-  return json;
+  const all = await getAllBookings();
+  const bookings = (all?.data ?? []).filter((b: any) => {
+    if (!b.start) return false;
+    const bDate = b.start.slice(0, 10);
+    return bDate === date && b.status !== "cancelled" && b.status !== "rejected";
+  });
+  return { data: bookings };
 }

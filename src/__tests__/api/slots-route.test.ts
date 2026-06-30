@@ -1,11 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mockGetAvailableSlots = vi.hoisted(() => vi.fn());
+const mockGetBookingsForDate = vi.hoisted(() => vi.fn());
 const mockRateLimitIP = vi.hoisted(() => vi.fn());
 const mockGetOrigin = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/cal", () => ({
   getAvailableSlots: mockGetAvailableSlots,
+  getBookingsForDate: mockGetBookingsForDate,
 }));
 
 vi.mock("@/lib/rate-limit", () => ({
@@ -36,7 +38,15 @@ describe("GET /api/slots", () => {
     vi.clearAllMocks();
     mockRateLimitIP.mockResolvedValue(true);
     mockGetOrigin.mockReturnValue("http://localhost:3000");
-    mockGetAvailableSlots.mockResolvedValue({ slots: { "2026-07-15": ["09:00", "10:00"] } });
+    mockGetAvailableSlots.mockResolvedValue({
+      slots: {
+        "2026-07-15": [
+          { start: "2026-07-15T09:00:00Z" },
+          { start: "2026-07-15T10:00:00Z" },
+        ],
+      },
+    });
+    mockGetBookingsForDate.mockResolvedValue({ data: [] });
   });
 
   it("returns available slots for valid date", async () => {
@@ -44,6 +54,7 @@ describe("GET /api/slots", () => {
     const json = await res.json();
     expect(res.status).toBe(200);
     expect(json.slots["2026-07-15"]).toHaveLength(2);
+    expect(json.slots["2026-07-15_booked"]).toBeUndefined();
   });
 
   it("returns 400 when date parameter is missing", async () => {
