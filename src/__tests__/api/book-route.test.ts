@@ -96,7 +96,7 @@ describe("POST /api/book", () => {
     expect(mockUpdateBookingLocation).toHaveBeenCalledTimes(1);
     const updateCall = mockUpdateBookingLocation.mock.calls[0];
     expect(updateCall[0]).toBe("cal-booking-uid");
-    expect(updateCall[1]).toContain("http://localhost:3000/termin/cal-booking-uid?token=");
+    expect(updateCall[1]).toBe("http://localhost:3000/admin/cal-booking-uid");
 
     expect(mockSendBookingPending).toHaveBeenCalledTimes(1);
     expect(mockSendBookingPending.mock.calls[0][0].to).toBe("max@test.de");

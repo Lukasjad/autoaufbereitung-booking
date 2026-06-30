@@ -158,11 +158,14 @@ export async function POST(request: NextRequest) {
 
     const bookingUid = result?.data?.uid;
     const terminLink = bookingUid ? `${proto}://${host}/termin/${bookingUid}?token=${accessToken}` : "";
+    const entryLink = bookingUid ? `${proto}://${host}/admin/${bookingUid}` : "";
 
-    // Location in Cal.com auf den Kunden-Link setzen,
-    // da Cal.coms eigene Emails das location-Feld als "beitreten"-Link verwenden
+    // Location in Cal.com auf Admin-Link setzen (für Cal.com-Dashboard).
+    // Cal.coms automatisierte Emails müssen deaktiviert sein, damit der Kunde
+    // nicht versehentlich den Admin-Link erhält — der Kunde bekommt unsere
+    // App-Mails mit dem korrekten /termin/{uid}?token=... Link über SendGrid.
     if (bookingUid) {
-      updateBookingLocation(bookingUid, terminLink).catch((err) =>
+      updateBookingLocation(bookingUid, entryLink).catch((err) =>
         console.error("Cal.com location update error:", err)
       );
     }
