@@ -176,6 +176,7 @@ export async function POST(
           const customerName = sanitize(att?.name || "Kunde");
           const service = sanitize(meta.service || "");
           const start = booking?.data?.start || "";
+          const accessToken = meta.access_token || meta.accessToken || "";
           sendAdminNewMessageNotification({
             adminEmail,
             customerName,
@@ -183,6 +184,7 @@ export async function POST(
             service,
             start,
             text: text || "📷 Bild",
+            accessToken,
           }).catch(() => {});
         } catch {}
       })();
