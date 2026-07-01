@@ -47,12 +47,36 @@ export const CAR_BRANDS = [
   "Subaru", "Suzuki", "Tesla", "Toyota", "Volvo", "VW",
 ];
 
-export const SERVICES = [
-  "Lackschäden Beseitigung",
-  "Dellen & Beulen Beseitigung",
-  "Felgenservice",
-  "Leasing Return Vorbereitung",
+export interface ServiceInfo {
+  name: string;
+  price: string;
+  description: string;
+}
+
+export const SERVICES: ServiceInfo[] = [
+  {
+    name: "Dellen & Beulen Beseitigung",
+    price: "ab 79 €",
+    description: "Fachgerechte Ausbeulung von Hagel-, Park-, und Türschäden – ohne Lackierung (Dellendrücken).",
+  },
+  {
+    name: "Lackschäden Beseitigung",
+    price: "ab 109 €",
+    description: "Ausbesserung von Kratzern, Steinschlägen und Lackabplatzern – inklusive Farbabstimmung.",
+  },
+  {
+    name: "Felgenservice",
+    price: "ab 69 €",
+    description: "Aufbereitung, Ausbesserung von Kratzern und Bordsteinschäden an Alu- und Stahlfelgen.",
+  },
+  {
+    name: "Leasing Return Vorbereitung",
+    price: "nach Aufwand",
+    description: "Professionelle Aufbereitung für die fristgerechte Rückgabe – Schadensfrei und leasingsicher.",
+  },
 ];
+
+export const SERVICE_NAMES = SERVICES.map((s) => s.name);
 
 export const FUEL_TYPES = [
   "Benzin", "Diesel", "Diesel-Hybrid", "Benzin-Hybrid",

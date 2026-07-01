@@ -43,6 +43,19 @@ export default function RootLayout({
           </div>
         </header>
         <main className="flex-1">{children}</main>
+        <footer className="border-t border-gray-200 bg-white py-6">
+          <div className="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-500">
+            <p>&copy; {new Date().getFullYear()} ELB Smart Repair</p>
+            <nav className="flex items-center gap-4">
+              <Link href="/datenschutz" className="hover:text-gray-700 transition-colors">
+                Datenschutz
+              </Link>
+              <Link href="/impressum" className="hover:text-gray-700 transition-colors">
+                Impressum
+              </Link>
+            </nav>
+          </div>
+        </footer>
       </body>
     </html>
   );
